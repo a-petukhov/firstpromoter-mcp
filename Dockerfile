@@ -1,39 +1,73 @@
-FROM python:3.11-slim
+# =============================================================================
+# FirstPromoter MCP Server - Dockerfile
+# =============================================================================
+# This file tells Docker how to build a container image for our server.
+# Think of it as a recipe for creating a portable "box" that contains
+# everything our server needs to run.
 
+# -----------------------------------------------------------------------------
+# Stage 1: Build Stage
+# -----------------------------------------------------------------------------
+# We use a "multi-stage build" which is like cooking in two kitchens:
+# Kitchen 1 (build): Has all the tools to prepare the ingredients
+# Kitchen 2 (production): Only has what's needed to serve the food
+
+# Start with Node.js 20 on Alpine Linux (small and fast)
+FROM node:20-alpine AS builder
+
+# Set working directory inside the container
+# Like saying "we'll do all our work in this folder"
 WORKDIR /app
 
-# Install curl for health checks
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Copy package files first (for better caching)
+# Docker caches each step - if package.json hasn't changed,
+# it won't reinstall dependencies (saves time!)
+COPY package*.json ./
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Install ALL dependencies (including dev dependencies for building)
+RUN npm ci
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy source code
+COPY tsconfig.json ./
+COPY src/ ./src/
 
-# Copy application code
-COPY firstpromoter_server.py .
+# Build the TypeScript code into JavaScript
+RUN npm run build
 
-# Create non-root user for security
-RUN useradd -m -u 1000 mcpuser && \
-    chown -R mcpuser:mcpuser /app
+# -----------------------------------------------------------------------------
+# Stage 2: Production Stage
+# -----------------------------------------------------------------------------
+# Fresh, clean image with only what we need to run
 
-# Switch to non-root user
-USER mcpuser
+FROM node:20-alpine AS production
 
-# Expose the port
-EXPOSE 8000
+# Add labels for documentation
+LABEL org.opencontainers.image.title="FirstPromoter MCP Server"
+LABEL org.opencontainers.image.description="MCP server for FirstPromoter affiliate management"
+LABEL org.opencontainers.image.source="https://github.com/a-petukhov/firstpromoter-mcp"
 
-# Environment variables (with defaults)
-ENV MCP_HOST=0.0.0.0
-ENV MCP_PORT=8000
-ENV PYTHONUNBUFFERED=1
+# Set working directory
+WORKDIR /app
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/sse || exit 1
+# Copy package files
+COPY package*.json ./
 
-# Run the server
-CMD ["python", "-u", "firstpromoter_server.py"]
+# Install ONLY production dependencies (no dev tools needed)
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built JavaScript from the builder stage
+COPY --from=builder /app/dist ./dist
+
+# Environment variables (with empty defaults - user must provide)
+# These are like "fill in the blank" fields
+ENV FP_BEARER_TOKEN=""
+ENV FP_ACCOUNT_ID=""
+ENV NODE_ENV=production
+
+# For Phase 2: HTTP transport will use this port
+# (Not used in Phase 1 stdio mode)
+EXPOSE 3000
+
+# Default command: run in stdio mode (for MCP clients like Claude Desktop)
+# The "-i" flag in "docker run -i" connects stdin/stdout
+CMD ["node", "dist/index.js", "--stdio"]
