@@ -1,0 +1,10 @@
+# MCP Server dependencies
+mcp[cli]>=1.2.0
+
+# HTTP client for FirstPromoter API
+httpx>=0.27.0
+
+# For HTTP/SSE transport (included with mcp but listing for clarity)
+starlette>=0.36.0
+uvicorn>=0.27.0
+sse-starlette>=1.6.0

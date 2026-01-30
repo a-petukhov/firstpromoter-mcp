@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  firstpromoter-mcp:
+    build: .
+    image: firstpromoter-mcp:latest
+    container_name: firstpromoter-mcp
+    restart: unless-stopped
+    
+    # Environment variables - set these in Dokploy or .env file
+    environment:
+      # FirstPromoter API credentials
+      - FP_API_KEY=${FP_API_KEY}
+      - FP_ACCOUNT_ID=${FP_ACCOUNT_ID}
+      
+      # MCP Server authentication (clients must provide this token)
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      
+      # Transport configuration
+      - MCP_TRANSPORT=sse
+      - MCP_HOST=0.0.0.0
+      - MCP_PORT=8000
+    
+    ports:
+      - "8000:8000"
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # Resource limits (adjust based on your server)
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Optional: If you want to use Traefik for HTTPS (Dokploy typically handles this)
+# networks:
+#   default:
+#     external: true
+#     name: dokploy-network
