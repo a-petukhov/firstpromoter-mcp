@@ -6,9 +6,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
-    "dev:stdio": "tsx src/index.ts --stdio"
+    "start": "node --env-file=.env dist/index.js",
+    "dev": "tsx --env-file=.env src/index.ts",
+    "dev:stdio": "tsx --env-file=.env src/index.ts --stdio"
   },
   "keywords": ["mcp", "firstpromoter", "affiliate", "marketing"],
   "author": "",

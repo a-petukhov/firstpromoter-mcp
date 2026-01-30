@@ -58,10 +58,6 @@ RUN npm ci --only=production && npm cache clean --force
 # Copy built JavaScript from the builder stage
 COPY --from=builder /app/dist ./dist
 
-# Environment variables (with empty defaults - user must provide)
-# These are like "fill in the blank" fields
-ENV FP_BEARER_TOKEN=""
-ENV FP_ACCOUNT_ID=""
 ENV NODE_ENV=production
 
 # For Phase 2: HTTP transport will use this port
