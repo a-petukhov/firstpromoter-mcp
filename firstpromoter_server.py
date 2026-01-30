@@ -2,27 +2,38 @@
 """FirstPromoter MCP Server - HTTP/SSE transport for remote multi-user access."""
 import os
 import sys
-import json
 import logging
 import httpx
+import uvicorn
 from mcp.server.fastmcp import FastMCP
 
-# Configure logging to stderr
+# Configure logging to stderr AND stdout for Docker
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    stream=sys.stderr
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.StreamHandler(sys.stderr)
+    ]
 )
 logger = logging.getLogger("firstpromoter-mcp")
 
-# Initialize MCP server
-mcp = FastMCP("firstpromoter")
+# Print startup message immediately
+print("=" * 50, flush=True)
+print("FirstPromoter MCP Server Starting...", flush=True)
+print("=" * 50, flush=True)
 
 # Configuration from environment variables
 FP_API_KEY = os.environ.get("FP_API_KEY", "")
 FP_ACCOUNT_ID = os.environ.get("FP_ACCOUNT_ID", "")
 MCP_AUTH_TOKEN = os.environ.get("MCP_AUTH_TOKEN", "")
 BASE_URL = "https://api.firstpromoter.com/api/v2/company"
+
+print(f"FP_API_KEY set: {bool(FP_API_KEY)}", flush=True)
+print(f"FP_ACCOUNT_ID set: {bool(FP_ACCOUNT_ID)}", flush=True)
+
+# Initialize MCP server
+mcp = FastMCP("firstpromoter")
 
 
 def get_headers():
@@ -666,28 +677,32 @@ async def get_payouts_by_promoter(status: str = "", page: str = "1", per_page: s
 # ==================== SERVER STARTUP ====================
 
 if __name__ == "__main__":
-    logger.info("Starting FirstPromoter MCP server...")
+    print("Entering main block...", flush=True)
     
-    # Check configuration
-    if not FP_API_KEY:
-        logger.warning("FP_API_KEY not set - API calls will fail")
-    if not FP_ACCOUNT_ID:
-        logger.warning("FP_ACCOUNT_ID not set - API calls will fail")
-    if not MCP_AUTH_TOKEN:
-        logger.warning("MCP_AUTH_TOKEN not set - server may be accessible without authentication")
-    
-    # Get transport mode from environment
-    transport_mode = os.environ.get("MCP_TRANSPORT", "sse")
+    # Get configuration
     host = os.environ.get("MCP_HOST", "0.0.0.0")
     port = int(os.environ.get("MCP_PORT", "8000"))
     
+    print(f"Host: {host}", flush=True)
+    print(f"Port: {port}", flush=True)
+    
+    # Check configuration
+    if not FP_API_KEY:
+        print("WARNING: FP_API_KEY not set - API calls will fail", flush=True)
+    if not FP_ACCOUNT_ID:
+        print("WARNING: FP_ACCOUNT_ID not set - API calls will fail", flush=True)
+    
     try:
-        if transport_mode == "sse":
-            logger.info(f"Starting HTTP/SSE server on {host}:{port}")
-            mcp.run(transport='sse', host=host, port=port)
-        else:
-            logger.info("Starting stdio server")
-            mcp.run(transport='stdio')
+        print(f"Starting MCP server with SSE transport on {host}:{port}...", flush=True)
+        
+        # Get the ASGI app from FastMCP
+        app = mcp.sse_app()
+        
+        # Run with uvicorn
+        uvicorn.run(app, host=host, port=port, log_level="info")
+        
     except Exception as e:
-        logger.error(f"Server error: {e}", exc_info=True)
+        print(f"FATAL ERROR: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         sys.exit(1)
