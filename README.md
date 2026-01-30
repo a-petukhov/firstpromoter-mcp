@@ -2,18 +2,18 @@
 
 An MCP (Model Context Protocol) server that connects AI assistants like Claude to your FirstPromoter affiliate management platform.
 
-## 🍽️ What is This? (The Restaurant Analogy)
+## What is This?
 
-Think of this server as a **translator** between Claude (or other AI assistants) and FirstPromoter:
+This server acts as a **translator** between AI assistants and FirstPromoter:
 
-| Component | Restaurant Analogy | What it Does |
-|-----------|-------------------|--------------|
-| **MCP Server** | The restaurant | Receives orders, processes them, returns results |
-| **Tools** | Menu items | Actions Claude can perform (e.g., "Get Promoters") |
-| **Transport** | How you order | stdio (in person) or HTTP (phone order) |
-| **FirstPromoter API** | The kitchen | Where the actual work happens |
+| Component | What it Does |
+|-----------|--------------|
+| **MCP Server** | Receives requests from AI, returns structured data |
+| **Tools** | Actions the AI can perform (e.g., "Get Promoters") |
+| **Transport** | How the AI connects — stdio (local) or HTTP (remote) |
+| **FirstPromoter API** | The data source — your affiliate management platform |
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -36,27 +36,55 @@ npm install
    ```
 
 2. Edit `.env` and add your FirstPromoter credentials:
-   - **FP_BEARER_TOKEN**: Find at Dashboard → Settings → Integrations → Manage API Keys
-   - **FP_ACCOUNT_ID**: Find at Dashboard → Settings → Integrations
+   - **FP_BEARER_TOKEN**: Find at Dashboard > Settings > Integrations > Manage API Keys
+   - **FP_ACCOUNT_ID**: Find at Dashboard > Settings > Integrations
 
-### Step 3: Test the Server
+### Step 3: Build & Test
 
-Run the server directly:
 ```bash
+# Build TypeScript
+npm run build
+
+# Test locally (loads .env automatically)
 npm run dev:stdio
 ```
 
 You should see:
 ```
 FirstPromoter MCP Server running on stdio
-Credentials configured: Yes
 ```
 
 ### Step 4: Connect to Claude Desktop
 
-1. Open Claude Desktop
-2. Go to Settings → Developer → Edit Config
-3. Add this configuration:
+#### Option A: Docker (recommended)
+
+Build the Docker image:
+```bash
+docker build -t firstpromoter-mcp .
+```
+
+Add to Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "firstpromoter": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm",
+        "-e", "FP_BEARER_TOKEN",
+        "-e", "FP_ACCOUNT_ID",
+        "firstpromoter-mcp"
+      ],
+      "env": {
+        "FP_BEARER_TOKEN": "your_token_here",
+        "FP_ACCOUNT_ID": "your_account_id_here"
+      }
+    }
+  }
+}
+```
+
+#### Option B: Direct Node.js
 
 ```json
 {
@@ -73,99 +101,126 @@ Credentials configured: Yes
 }
 ```
 
-**Or using tsx (for development):**
+Restart Claude Desktop after editing the config.
 
-```json
-{
-  "mcpServers": {
-    "firstpromoter": {
-      "command": "npx",
-      "args": ["tsx", "/full/path/to/firstpromoter-mcp/src/index.ts", "--stdio"],
-      "env": {
-        "FP_BEARER_TOKEN": "your_token_here",
-        "FP_ACCOUNT_ID": "your_account_id_here"
-      }
-    }
-  }
-}
-```
-
-4. Restart Claude Desktop
-5. You should see "firstpromoter" in the MCP tools list
-
-### Step 5: Try It Out!
+### Step 5: Try It Out
 
 Ask Claude:
 - "List my promoters"
-- "Show me pending promoters"
-- "Get the first 10 accepted promoters"
+- "Show me promoters sorted by revenue"
+- "Find promoters who joined this month"
+- "Show accepted promoters with more than 10 customers"
 
-## 📚 Available Tools
+## Available Tools
 
 ### get_promoters
 
-Lists all promoters from your FirstPromoter account.
+Lists promoters from your FirstPromoter account with full filtering, sorting, and search capabilities.
 
-**Parameters:**
+**Search & Pagination:**
+
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `state` | string (optional) | Filter by state: `pending`, `accepted`, `blocked`, `archived` |
-| `page` | number (optional) | Page number for pagination (starts at 1) |
-| `per_page` | number (optional) | Items per page (1-100) |
+| `q` | string | Search by email, name, or ref_id |
+| `ids` | number[] | Filter by specific promoter IDs |
+| `page` | number | Page number (starts at 1) |
+| `per_page` | number | Results per page (1-100, default 20) |
 
-**Example usage in Claude:**
-> "Show me all accepted promoters, page 2 with 20 per page"
+**Filters:**
 
-## 🗺️ Project Roadmap
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `state` | enum | `pending`, `accepted`, `rejected`, `blocked`, `inactive`, `not_set` |
+| `campaign_id` | number | Filter by campaign |
+| `parent_promoter_id` | number | Filter by parent promoter (sub-affiliates) |
+| `archived` | boolean | Archived status |
+| `has_wform` | enum | W-form status: `yes` or `no` |
+| `subscribed_to_email` | boolean | Email subscription status |
+| `custom_field1` | string | Custom field 1 value |
+| `custom_field2` | string | Custom field 2 value |
+| `fraud_suspicions` | string[] | `same_ip_suspicion`, `same_promoter_email`, `ad_source`, `no_suspicion` |
 
-- [x] **Phase 1**: Local development (stdio transport)
-- [ ] **Phase 2**: Remote deployment (Streamable HTTP)
-- [ ] **Phase 3**: OAuth authentication (Google)
-- [ ] **Phase 4**: Production polish
+**Range Filters:**
 
-## 📁 Project Structure
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `revenue_amount_from` / `_to` | number | Revenue range (in cents) |
+| `customers_count_from` / `_to` | number | Customer count range |
+| `referrals_count_from` / `_to` | number | Referral count range |
+| `clicks_count_from` / `_to` | number | Click count range |
+
+**Date Filters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `joined_at_from` / `_to` | string | Join date range (YYYY-MM-DD HH:MM:SS) |
+| `last_login_at_from` / `_to` | string | Last login date range |
+
+**Sorting:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `sort_by` | enum | `clicks_count`, `referrals_count`, `customers_count`, `revenue_amount`, `joined_at` |
+| `sort_direction` | enum | `asc` or `desc` |
+
+**Response fields per promoter:**
+- Identity: id, email, name, state, note, custom_fields
+- Profile: website, company, country, phone, social links (instagram, youtube, linkedin, etc.)
+- Stats: clicks, referrals, sales, customers, active customers, revenue (in cents)
+- Campaigns: campaign name, ref link, coupon code
+- Dates: joined_at, last_login_at, created_at, archived_at
+- Fraud: fraud_suspicions array
+
+## Project Structure
 
 ```
 firstpromoter-mcp/
 ├── src/
-│   └── index.ts        # Main server file
-├── dist/               # Compiled JavaScript (after build)
-├── package.json        # Dependencies and scripts
-├── tsconfig.json       # TypeScript configuration
-├── .env.example        # Environment variables template
-└── README.md           # This file
+│   ├── index.ts          # Entry point: server creation + stdio transport
+│   ├── api.ts            # FirstPromoter API helper (auth, fetch, errors)
+│   ├── formatters.ts     # Response formatters (structured text + raw JSON)
+│   └── tools/
+│       ├── index.ts      # Tool registry
+│       └── promoters.ts  # get_promoters tool definition
+├── dist/                  # Compiled JavaScript
+├── Dockerfile             # Multi-stage Docker build
+├── package.json
+├── tsconfig.json
+└── .env.example
 ```
 
-## 🔧 Development Scripts
+## Development Scripts
 
 | Command | Description |
 |---------|-------------|
-| `npm run dev` | Run server in development mode |
-| `npm run dev:stdio` | Run server with stdio transport |
+| `npm run dev:stdio` | Run server in development mode (auto-loads .env) |
 | `npm run build` | Compile TypeScript to JavaScript |
-| `npm start` | Run compiled server |
+| `npm start` | Run compiled server (auto-loads .env) |
+| `docker build -t firstpromoter-mcp .` | Build Docker image |
 
-## 🐛 Troubleshooting
+## Roadmap
+
+- [x] **Phase 1**: Local stdio server with get_promoters (all API params)
+- [ ] **Phase 2**: Remote deployment (Streamable HTTP transport)
+- [ ] **Phase 3**: OAuth authentication (Google)
+- [ ] **Phase 4**: Production polish (error handling, logging, rate limiting)
+- [ ] **Phase 5**: Smart caching (SQLite for historical reports)
+
+## Troubleshooting
 
 ### "Credentials not configured" error
-
-Make sure your `.env` file exists and contains valid credentials:
-```bash
-cat .env
-```
+Make sure your `.env` file (local dev) or Claude Desktop config `env` section contains valid `FP_BEARER_TOKEN` and `FP_ACCOUNT_ID`.
 
 ### Server doesn't appear in Claude Desktop
-
-1. Check the Claude Desktop logs
-2. Verify the path in your config is correct
-3. Make sure you've restarted Claude Desktop
+1. Check Claude Desktop logs for errors
+2. Verify the Docker image built successfully: `docker images | grep firstpromoter`
+3. Restart Claude Desktop after config changes
 
 ### API errors from FirstPromoter
+- `401 Unauthorized` — check your Bearer token and Account-ID
+- `404 invalid_route` — verify Account-ID is correct (not a token)
+- `429 Too Many Requests` — rate limit is 400 requests/minute
 
-- Check your API token hasn't expired
-- Verify your account has API access enabled
-- Check the FirstPromoter status page
-
-## 📄 License
+## License
 
 MIT
