@@ -61,16 +61,16 @@ export function formatPromoters(data: unknown): string {
     lines.push(`   Email: ${p.email || 'N/A'}`);
     lines.push(`   State: ${p.state || 'N/A'}`);
 
-    // Profile fields
+    // Profile fields (API may return company_name or company, phone_number or phone)
     lines.push(`   Website: ${profile?.website || 'N/A'}`);
-    lines.push(`   Company: ${profile?.company || 'N/A'}`);
+    lines.push(`   Company: ${profile?.company_name || profile?.company || 'N/A'}`);
     lines.push(`   Country: ${profile?.country || 'N/A'}`);
 
-    // Social links (only show those that have values)
+    // Social links (API may return instagram_url or instagram — handle both)
     const socialFields = ['instagram', 'youtube', 'linkedin', 'facebook', 'twitter', 'twitch', 'tiktok'];
     const socials = socialFields
-      .filter(field => profile?.[field])
-      .map(field => `${field}: ${profile![field]}`);
+      .filter(field => profile?.[`${field}_url`] || profile?.[field])
+      .map(field => `${field}: ${profile![`${field}_url`] || profile![field]}`);
     if (socials.length > 0) {
       lines.push(`   Social: ${socials.join(', ')}`);
     }

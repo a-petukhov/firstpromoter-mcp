@@ -13,7 +13,7 @@ This is an MCP (Model Context Protocol) server that connects AI assistants (Clau
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | ✅ Complete | Local stdio server with `get_promoters` tool (full API params) |
+| Phase 1 | ✅ Complete | Local stdio server with `get_promoters` + `get_promoter` + `update_promoter` tools (full API params) |
 | Phase 2 | 🔲 Next | Add remaining API tools (commissions, referrals, payouts, reports, promo codes) |
 | Phase 3 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
 
@@ -34,17 +34,23 @@ firstpromoter-mcp/
 │   ├── formatters.ts     # Response formatters (structured text + raw JSON)
 │   └── tools/
 │       ├── index.ts      # Tool registry — registers all tools with the server
-│       └── promoters.ts  # get_promoters tool (26 params, full response docs)
+│       └── promoters.ts  # get_promoters (26 params) + get_promoter (3 params) + update_promoter (24 params)
 ├── docs/                  # Local copies of reference documentation
-│   ├── firstpromoter-llms.txt        # LLM-friendly API endpoint index
 │   ├── anthropic-mcp/               # MCP specification docs
 │   │   └── llms-full.txt
 │   └── firstpromoter-api/           # Full API docs per endpoint (scraped via Firecrawl)
-│       ├── promoters/               # 11 endpoint docs (list, get, create, update, accept, reject, block, archive, restore, add/move to campaign)
-│       ├── commissions/             # 3 endpoint docs (list, approve, deny)
+│       ├── firstpromoter-llms.txt   # LLM-friendly API endpoint index
+│       ├── introduction.md          # API introduction doc
+│       ├── authentication.md        # API authentication doc
+│       ├── promoters/               # 12 endpoint docs (list, get, create, update, accept, reject, block, archive, restore, add/move to campaign, assign parent)
+│       ├── referrals/               # 5 endpoint docs (list, get, update, move, delete)
+│       ├── commissions/             # 7 endpoint docs (list, create, update, approve, deny, mark fulfilled/unfulfilled)
 │       ├── payouts/                 # 4 endpoint docs (list, grouped, due stats, stats)
 │       ├── reports/                 # 5 endpoint docs (campaigns, overview, promoters, traffic sources, URLs)
-│       └── promoter-campaigns/      # 2 endpoint docs (list, update)
+│       ├── promo-codes/             # 5 endpoint docs (list, create, get, update, archive)
+│       ├── promoter-campaigns/      # 2 endpoint docs (list, update)
+│       ├── batch-processes/         # 3 endpoint docs (list, show, progress)
+│       └── tracking-api/            # 4 endpoint docs (leads/signups, sales, refund, cancellation)
 ├── dist/                  # Compiled JavaScript (after npm run build)
 ├── package.json
 ├── tsconfig.json
@@ -93,20 +99,30 @@ Each tool's MCP description includes:
 2. **Full response structure** listing every field and nested object the API returns
 3. **Data accuracy instructions** telling the AI client not to guess or infer values
 
-The handler maps flat Zod params to the API's bracket notation:
-- `state` → `filters[state]=...`
-- `revenue_amount_from` → `filters[revenue_amount][from]=...`
-- `sort_by` + `sort_direction` → `sorting[field]=direction`
+The handler maps flat Zod params to the API's expected format:
+- **GET query filters:** `state` → `filters[state]=...`, `revenue_amount_from` → `filters[revenue_amount][from]=...`
+- **GET sorting:** `sort_by` + `sort_direction` → `sorting[field]=direction`
+- **PUT/POST body:** flat profile fields (`first_name`, `website`, etc.) → nested `{ profile: { first_name, website } }` object
 
 ### API Docs Source
 
-**Local docs (preferred):** Full API docs are saved locally in `docs/firstpromoter-api/` — organized by category (promoters, commissions, payouts, reports, promoter-campaigns). These were scraped via Firecrawl and should be read directly instead of fetching from the internet.
+**Local docs (preferred):** Full API docs are saved locally in `docs/firstpromoter-api/` as Markdown files, scraped via Firecrawl. **All API endpoints are covered locally** — organized by category:
+- `promoters/` — 12 endpoint docs (list, get, create, update, accept, reject, block, archive, restore, add/move to campaign, assign parent)
+- `referrals/` — 5 endpoint docs (list, get, update, move, delete)
+- `commissions/` — 7 endpoint docs (list, create, update, approve, deny, mark fulfilled/unfulfilled)
+- `payouts/` — 4 endpoint docs (list, grouped, due stats, stats)
+- `reports/` — 5 endpoint docs (campaigns, overview, promoters, traffic sources, URLs)
+- `promo-codes/` — 5 endpoint docs (list, create, get, update, archive)
+- `promoter-campaigns/` — 2 endpoint docs (list, update)
+- `batch-processes/` — 3 endpoint docs (list in-progress, show, progress)
+- `tracking-api/` — 4 endpoint docs (leads/signups, sales, refund, cancellation)
+- Root: `introduction.md`, `authentication.md`, `firstpromoter-llms.txt`
+
+**Always read local docs first** (`docs/firstpromoter-api/{category}/`) before fetching from the internet.
 
 **Online fallback:** If a local doc is missing for an endpoint:
-- **Index:** `https://docs.firstpromoter.com/llms.txt` (also saved locally at `docs/firstpromoter-llms.txt`)
+- **Index:** `https://docs.firstpromoter.com/llms.txt` (also saved locally at `docs/firstpromoter-api/firstpromoter-llms.txt`)
 - **Per-endpoint pages:** accessible via WebFetch (e.g., `/api-reference-v2/api-admin/promoters`)
-
-**Note:** Local docs do not yet cover: referrals, promo_codes, create/update/mark_fulfilled/mark_unfulfilled commissions. For these, fetch from the online docs.
 
 ## Key Decisions Made
 
@@ -136,10 +152,10 @@ The handler maps flat Zod params to the API's bracket notation:
 ### API Endpoints — Full List
 
 **Promoters:**
-- GET /promoters — List promoters (✅ implemented with all 26 params)
-- GET /promoters/:id — Get promoter details
+- GET /promoters — List promoters (✅ implemented — 26 query params, full response docs)
+- GET /promoters/:id — Get promoter details (✅ implemented — find_by support)
 - POST /promoters — Create promoter
-- PUT /promoters/:id — Update promoter
+- PUT /promoters/:id — Update promoter (✅ implemented — 24 body params, find_by support)
 - POST /promoters/accept — Accept promoters
 - POST /promoters/reject — Reject promoters
 - POST /promoters/block — Block promoters
@@ -188,6 +204,17 @@ The handler maps flat Zod params to the API's bracket notation:
 **Promoter Campaigns:**
 - GET /promoter_campaigns — List promoter campaigns
 - PUT /promoter_campaigns/:id — Update promoter campaign
+
+**Batch Processes:**
+- GET /batches — List in-progress batch processes
+- GET /batches/:id — Show batch process
+- GET /batches/:id/progress — Show batch progress
+
+**Tracking API:**
+- POST /tracking/leads — Leads and signups
+- POST /tracking/sales — Sales
+- POST /tracking/refund — Refunds
+- POST /tracking/cancellation — Cancellations
 
 ## Development Commands
 
@@ -241,7 +268,7 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 
 ## Adding a New Endpoint (Pattern)
 
-1. **Read API docs:** Check `docs/firstpromoter-api/{category}/` for the endpoint's doc file first. If not available locally, use WebFetch on the endpoint's doc page (find URL via `docs/firstpromoter-llms.txt` or `https://docs.firstpromoter.com/llms.txt`)
+1. **Read API docs:** Check `docs/firstpromoter-api/{category}/` for the endpoint's doc file first. If not available locally, use WebFetch on the endpoint's doc page (find URL via `docs/firstpromoter-api/firstpromoter-llms.txt` or `https://docs.firstpromoter.com/llms.txt`)
 2. **Create tool file:** `src/tools/{name}.ts` — register tool with:
    - All query params as flat Zod fields with `.describe()` on each
    - Full response structure documented in the tool description
@@ -274,7 +301,7 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 4. Implement reports tools (campaigns, overview, promoters, traffic sources, URLs)
 5. Implement promo codes tools (list, create, get, update, archive)
 6. Implement promoter campaigns tools (list, update)
-7. Implement remaining promoter tools (get details, create, update, accept, reject, block, archive, restore, campaign management)
+7. Implement remaining promoter tools (create, accept, reject, block, archive, restore, campaign management)
 
 ## Future: Remote Server (Separate Repo)
 

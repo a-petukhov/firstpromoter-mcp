@@ -331,4 +331,340 @@ export function registerPromoterTools(server: McpServer): void {
       }
     }
   );
+
+  // ==========================================================================
+  // Tool: get_promoter
+  //
+  // Gets a single promoter's details. Sends GET to /promoters/{id}.
+  // Supports alternative lookup via find_by query parameter.
+  //
+  // API docs: docs/firstpromoter-api/promoters/...get-promoter-details...md
+  // ==========================================================================
+  server.registerTool(
+    "get_promoter",
+
+    {
+      title: "Get Promoter Details",
+      description:
+        "Get details for a single promoter (affiliate) from FirstPromoter. " +
+        "Identify the promoter by numeric ID, or use find_by + find_by_value to look up by email/auth_token/ref_token/promo_code. " +
+
+        "RESPONSE STRUCTURE — returns a single promoter object: " +
+        "id, email, name, cust_id, state (pending/accepted/rejected/blocked/inactive/not_set), note, " +
+        "joined_at, last_login_at, created_at, updated_at, archived_at, " +
+        "is_confirmed, is_customized, first_event_at, password_setup_url, " +
+        "fraud_suspicions[] (same_ip_suspicion/same_promoter_email/ad_source), " +
+        "invoice_details_status (pending/approved/denied), " +
+        "custom_fields: { key: value }, " +
+        "stats: { clicks_count, referrals_count, sales_count, customers_count, " +
+        "revenue_amount (in cents), active_customers_count }, " +
+        "profile: { first_name, last_name, website, company_name, company_number, phone_number, " +
+        "vat_id, country, address, description, avatar, w8_form_url, w9_form_url, " +
+        "instagram_url, youtube_url, linkedin_url, facebook_url, twitter_url, twitch_url, tiktok_url, " +
+        "invoice_details_validation_errors, should_validate_invoice_details }, " +
+        "promoter_campaigns[]: { campaign: { id, name, color }, state, coupon, ref_token, ref_link }. " +
+
+        "IMPORTANT: When presenting results, cite exact field values from the returned data.",
+
+      inputSchema: {
+        // --- Promoter identification ---
+        id: z.number().int()
+          .optional()
+          .describe("Promoter's numeric ID. Required unless using find_by + find_by_value."),
+
+        find_by: z.enum(['email', 'auth_token', 'ref_token', 'promo_code'])
+          .optional()
+          .describe("Alternative lookup method — use with find_by_value instead of id. " +
+            "When used, the find_by_value replaces the ID in the URL path."),
+
+        find_by_value: z.string()
+          .optional()
+          .describe("The identifier value when using find_by (e.g. the email address, auth_token, ref_token, or promo_code)"),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Determine the URL path — by numeric ID or alternative identifier
+        let pathId: string;
+        const queryParams: Record<string, string> = {};
+
+        if (args.find_by && args.find_by_value) {
+          // Alternative lookup: GET /promoters/{email|token|code}?find_by=email
+          pathId = encodeURIComponent(args.find_by_value);
+          queryParams.find_by = args.find_by;
+        } else if (args.id !== undefined) {
+          // Standard lookup: GET /promoters/{numeric_id}
+          pathId = args.id.toString();
+        } else {
+          return {
+            content: [{
+              type: "text" as const,
+              text: "Error: Either 'id' or both 'find_by' and 'find_by_value' must be provided."
+            }],
+            isError: true
+          };
+        }
+
+        // Call GET /promoters/{id}
+        const result = await callFirstPromoterAPI(`/promoters/${pathId}`, {
+          queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined
+        });
+
+        // Format response — wrap single promoter in array for the list formatter
+        const summary = formatPromoters([result]);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error fetching promoter details: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: update_promoter
+  //
+  // Updates a promoter's information. Sends PUT to /promoters/{id}.
+  // Only provided fields are changed — omitted fields stay unchanged.
+  //
+  // API docs: docs/firstpromoter-api/promoters/...update-promoter...md
+  // ==========================================================================
+  server.registerTool(
+    "update_promoter",
+
+    {
+      title: "Update Promoter",
+      description:
+        "Update a promoter's information in FirstPromoter. Only provided fields are changed — omitted fields remain unchanged. " +
+        "Identify the promoter by numeric ID, or use find_by + find_by_value to look up by email/auth_token/ref_token/promo_code. " +
+
+        "BODY PARAMETERS — all optional: " +
+        "email (new email), cust_id (custom customer ID, nullable). " +
+        "Profile fields: first_name, last_name, website, company_name, company_number, phone_number, " +
+        "vat_id, country (2-char code e.g. 'US'), address. " +
+        "Social URLs: instagram_url, youtube_url, linkedin_url, facebook_url, twitter_url, twitch_url, tiktok_url. " +
+        "Tax forms: destroy_w8form / destroy_w9form (boolean — removes the form). " +
+        "Custom fields: pass as key-value object matching your company's custom field configuration. " +
+
+        "RESPONSE STRUCTURE — returns the updated promoter object: " +
+        "id, email, name, cust_id, state (pending/accepted/rejected/blocked/inactive/not_set), note, " +
+        "joined_at, last_login_at, created_at, updated_at, archived_at, " +
+        "is_confirmed, is_customized, first_event_at, password_setup_url, " +
+        "fraud_suspicions[] (same_ip_suspicion/same_promoter_email/ad_source), " +
+        "invoice_details_status (pending/approved/denied), " +
+        "custom_fields: { key: value }, " +
+        "stats: { clicks_count, referrals_count, sales_count, customers_count, " +
+        "revenue_amount (in cents), active_customers_count }, " +
+        "profile: { first_name, last_name, website, company_name, company_number, phone_number, " +
+        "vat_id, country, address, description, avatar, w8_form_url, w9_form_url, " +
+        "instagram_url, youtube_url, linkedin_url, facebook_url, twitter_url, twitch_url, tiktok_url, " +
+        "invoice_details_validation_errors, should_validate_invoice_details }, " +
+        "promoter_campaigns[]: { campaign: { id, name, color }, state, coupon, ref_token, ref_link }. " +
+
+        "READ-ONLY fields (returned in response but CANNOT be updated here): note, description. " +
+        "Use the FirstPromoter dashboard to edit these. " +
+
+        "IMPORTANT: This is a partial update — only send fields you want to change. " +
+        "When presenting results, cite exact field values from the returned data.",
+
+      inputSchema: {
+        // --- Promoter identification ---
+        id: z.number().int()
+          .optional()
+          .describe("Promoter's numeric ID. Required unless using find_by + find_by_value."),
+
+        find_by: z.enum(['email', 'auth_token', 'ref_token', 'promo_code'])
+          .optional()
+          .describe("Alternative lookup method — use with find_by_value instead of id. " +
+            "The find_by_value replaces the ID in the API URL path."),
+
+        find_by_value: z.string()
+          .optional()
+          .describe("The identifier value when using find_by (e.g. the email, auth_token, ref_token, or promo_code)"),
+
+        // --- Updatable top-level fields ---
+        email: z.string()
+          .optional()
+          .describe("New email address for the promoter"),
+
+        cust_id: z.string()
+          .nullable()
+          .optional()
+          .describe("Custom customer identifier (set to null to clear)"),
+
+        // --- Profile fields (mapped to nested profile object in the body) ---
+        first_name: z.string().optional()
+          .describe("Promoter's first name"),
+
+        last_name: z.string().optional()
+          .describe("Promoter's last name"),
+
+        website: z.string().optional()
+          .describe("Promoter's website URL"),
+
+        company_name: z.string().optional()
+          .describe("Business / company name"),
+
+        company_number: z.string().optional()
+          .describe("Company registration number"),
+
+        phone_number: z.string().optional()
+          .describe("Contact phone number"),
+
+        vat_id: z.string().optional()
+          .describe("VAT identifier"),
+
+        country: z.string().optional()
+          .describe("2-character country code (e.g. 'US', 'GB', 'DE')"),
+
+        address: z.string().optional()
+          .describe("Physical / mailing address"),
+
+        // --- Social URLs (mapped to profile object) ---
+        instagram_url: z.string().optional()
+          .describe("Instagram profile URL"),
+
+        youtube_url: z.string().optional()
+          .describe("YouTube channel URL"),
+
+        linkedin_url: z.string().optional()
+          .describe("LinkedIn profile URL"),
+
+        facebook_url: z.string().optional()
+          .describe("Facebook profile URL"),
+
+        twitter_url: z.string().optional()
+          .describe("Twitter / X profile URL"),
+
+        twitch_url: z.string().optional()
+          .describe("Twitch channel URL"),
+
+        tiktok_url: z.string().optional()
+          .describe("TikTok profile URL"),
+
+        // --- Tax form destruction flags ---
+        destroy_w8form: z.boolean().optional()
+          .describe("Set to true to remove the W8 tax form"),
+
+        destroy_w9form: z.boolean().optional()
+          .describe("Set to true to remove the W9 tax form"),
+
+        // --- Custom fields ---
+        custom_fields: z.record(z.string()).optional()
+          .describe("Custom fields as key-value pairs matching your company's custom field config " +
+            "(e.g. { \"my_field\": \"value\" }). Keys must match fields set in Settings > Affiliate portal > Custom fields."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Determine the URL path — by numeric ID or alternative identifier
+        let pathId: string;
+        if (args.find_by && args.find_by_value) {
+          // Alternative lookup: PUT /promoters/{email|token|code}
+          pathId = encodeURIComponent(args.find_by_value);
+        } else if (args.id !== undefined) {
+          // Standard lookup: PUT /promoters/{numeric_id}
+          pathId = args.id.toString();
+        } else {
+          return {
+            content: [{
+              type: "text" as const,
+              text: "Error: Either 'id' or both 'find_by' and 'find_by_value' must be provided."
+            }],
+            isError: true
+          };
+        }
+
+        // Build the JSON request body
+        const body: Record<string, unknown> = {};
+
+        // Top-level body fields
+        if (args.email !== undefined) body.email = args.email;
+        if (args.find_by !== undefined) body.find_by = args.find_by;
+        if (args.cust_id !== undefined) body.cust_id = args.cust_id;
+
+        // Profile fields — collect into nested profile object
+        // The API expects: { "profile": { "first_name": "...", ... } }
+        const profileFields = [
+          'first_name', 'last_name', 'website', 'company_name', 'company_number',
+          'phone_number', 'vat_id', 'country', 'address',
+          'instagram_url', 'youtube_url', 'linkedin_url', 'facebook_url',
+          'twitter_url', 'twitch_url', 'tiktok_url'
+        ];
+
+        const profile: Record<string, unknown> = {};
+        for (const field of profileFields) {
+          const value = (args as Record<string, unknown>)[field];
+          if (value !== undefined) {
+            profile[field] = value;
+          }
+        }
+
+        if (Object.keys(profile).length > 0) {
+          body.profile = profile;
+        }
+
+        // Tax form destruction flags — these use bracket notation in the API
+        if (args.destroy_w8form !== undefined) {
+          body['profile[_destroy_w8form]'] = args.destroy_w8form;
+        }
+        if (args.destroy_w9form !== undefined) {
+          body['profile[_destroy_w9form]'] = args.destroy_w9form;
+        }
+
+        // Custom fields — pass as-is (key-value object)
+        if (args.custom_fields) {
+          body.custom_fields = args.custom_fields;
+        }
+
+        // Call PUT /promoters/{id}
+        const result = await callFirstPromoterAPI(`/promoters/${pathId}`, {
+          method: 'PUT',
+          body
+        });
+
+        // Format response — wrap single promoter in array for the list formatter
+        const summary = `Updated promoter successfully.\n\n${formatPromoters([result])}`;
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error updating promoter: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
 }
