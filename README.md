@@ -1,6 +1,8 @@
-# FirstPromoter MCP Server
+# FirstPromoter MCP Server (Local)
 
-An MCP (Model Context Protocol) server that connects AI assistants like Claude to your FirstPromoter affiliate management platform.
+A **local** MCP (Model Context Protocol) server that connects AI assistants like Claude to your FirstPromoter affiliate management platform. Runs on your machine via Docker or Node.js — your API credentials never leave your device.
+
+> Looking for the remote/hosted version? That will be a separate project (coming later).
 
 ## What is This?
 
@@ -10,7 +12,7 @@ This server acts as a **translator** between AI assistants and FirstPromoter:
 |-----------|--------------|
 | **MCP Server** | Receives requests from AI, returns structured data |
 | **Tools** | Actions the AI can perform (e.g., "Get Promoters") |
-| **Transport** | How the AI connects — stdio (local) or HTTP (remote) |
+| **Transport** | stdio — runs locally on your machine |
 | **FirstPromoter API** | The data source — your affiliate management platform |
 
 ## Quick Start
@@ -201,10 +203,10 @@ firstpromoter-mcp/
 ## Roadmap
 
 - [x] **Phase 1**: Local stdio server with get_promoters (all API params)
-- [ ] **Phase 2**: Remote deployment (Streamable HTTP transport)
-- [ ] **Phase 3**: OAuth authentication (Google)
-- [ ] **Phase 4**: Production polish (error handling, logging, rate limiting)
-- [ ] **Phase 5**: Smart caching (SQLite for historical reports)
+- [ ] **Phase 2**: Add remaining API tools (commissions, referrals, payouts, reports, promo codes)
+- [ ] **Phase 3**: Production polish (error handling, logging, rate limiting)
+
+A remote HTTP server with OAuth authentication will be developed as a separate project.
 
 ## Troubleshooting
 

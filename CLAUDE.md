@@ -5,27 +5,24 @@
 This is an MCP (Model Context Protocol) server that connects AI assistants (Claude, ChatGPT, Gemini, n8n) to the FirstPromoter affiliate management platform.
 
 **Repository:** https://github.com/a-petukhov/firstpromoter-mcp
-**Domain:** mcp.claritynodes.com (Hetzner server, Dokploy/Docker, Traefik)
+**Type:** Local MCP server (stdio transport, runs via Docker on user's machine)
 
 ## Current Status
+
+**Scope:** This repo is the **local MCP server** (stdio transport, runs via Docker on the user's machine). A separate repo will be created later for the remote HTTP server with OAuth.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | Phase 1 | ✅ Complete | Local stdio server with `get_promoters` tool (full API params) |
-| Phase 2 | 🔲 Next | Remote deployment (Streamable HTTP transport) |
-| Phase 3 | 🔲 Planned | OAuth authentication (Google) |
-| Phase 4 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
-| Phase 5 | 🔲 Planned | Smart caching (SQLite for historical reports) |
+| Phase 2 | 🔲 Next | Add remaining API tools (commissions, referrals, payouts, reports, promo codes) |
+| Phase 3 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
 
 ## Tech Stack
 
 - **Language:** TypeScript (ESM modules, `"type": "module"`)
 - **Runtime:** Node.js 20+ (uses built-in `--env-file=.env` for local dev)
 - **MCP SDK:** @modelcontextprotocol/sdk v1.12+
-- **Web Framework:** Express (for HTTP transport in Phase 2)
-- **Database:** SQLite (planned for Phase 5)
-- **Deployment:** Docker multi-stage build (node:20-alpine) → Dokploy → Hetzner server
-- **SSL:** Let's Encrypt via Traefik
+- **Deployment:** Docker multi-stage build (node:20-alpine), runs locally on user's machine
 
 ## Project Structure
 
@@ -38,6 +35,16 @@ firstpromoter-mcp/
 │   └── tools/
 │       ├── index.ts      # Tool registry — registers all tools with the server
 │       └── promoters.ts  # get_promoters tool (26 params, full response docs)
+├── docs/                  # Local copies of reference documentation
+│   ├── firstpromoter-llms.txt        # LLM-friendly API endpoint index
+│   ├── anthropic-mcp/               # MCP specification docs
+│   │   └── llms-full.txt
+│   └── firstpromoter-api/           # Full API docs per endpoint (scraped via Firecrawl)
+│       ├── promoters/               # 11 endpoint docs (list, get, create, update, accept, reject, block, archive, restore, add/move to campaign)
+│       ├── commissions/             # 3 endpoint docs (list, approve, deny)
+│       ├── payouts/                 # 4 endpoint docs (list, grouped, due stats, stats)
+│       ├── reports/                 # 5 endpoint docs (campaigns, overview, promoters, traffic sources, URLs)
+│       └── promoter-campaigns/      # 2 endpoint docs (list, update)
 ├── dist/                  # Compiled JavaScript (after npm run build)
 ├── package.json
 ├── tsconfig.json
@@ -93,11 +100,13 @@ The handler maps flat Zod params to the API's bracket notation:
 
 ### API Docs Source
 
-FirstPromoter publishes an LLM-friendly endpoint index:
-- **Index:** `https://docs.firstpromoter.com/llms.txt` — lists all API endpoints
+**Local docs (preferred):** Full API docs are saved locally in `docs/firstpromoter-api/` — organized by category (promoters, commissions, payouts, reports, promoter-campaigns). These were scraped via Firecrawl and should be read directly instead of fetching from the internet.
+
+**Online fallback:** If a local doc is missing for an endpoint:
+- **Index:** `https://docs.firstpromoter.com/llms.txt` (also saved locally at `docs/firstpromoter-llms.txt`)
 - **Per-endpoint pages:** accessible via WebFetch (e.g., `/api-reference-v2/api-admin/promoters`)
 
-When adding a new endpoint, fetch its doc page to get full parameter specs and response schemas.
+**Note:** Local docs do not yet cover: referrals, promo_codes, create/update/mark_fulfilled/mark_unfulfilled commissions. For these, fetch from the online docs.
 
 ## Key Decisions Made
 
@@ -111,6 +120,7 @@ When adding a new endpoint, fetch its doc page to get full parameter specs and r
 8. **Flat Zod inputSchema** — All API params exposed as flat fields (not nested objects) so AI clients can easily discover and use them. Handler maps to API's bracket notation.
 9. **Full response structure in tool description** — AI clients know what fields to expect before calling the tool
 10. **Node.js --env-file=.env** — Built-in flag (since Node 20.6) for loading .env in development, no dotenv dependency needed
+11. **Two separate repos** — Local stdio server (this repo) and remote HTTP server (future repo) are separate products with different auth models, deployment targets, and release cycles. Shared code (tools, API helper, formatters) will be copied when forking.
 
 ## FirstPromoter API Details
 
@@ -231,7 +241,7 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 
 ## Adding a New Endpoint (Pattern)
 
-1. **Fetch API docs:** Use WebFetch on the endpoint's doc page (find URL via `https://docs.firstpromoter.com/llms.txt`)
+1. **Read API docs:** Check `docs/firstpromoter-api/{category}/` for the endpoint's doc file first. If not available locally, use WebFetch on the endpoint's doc page (find URL via `docs/firstpromoter-llms.txt` or `https://docs.firstpromoter.com/llms.txt`)
 2. **Create tool file:** `src/tools/{name}.ts` — register tool with:
    - All query params as flat Zod fields with `.describe()` on each
    - Full response structure documented in the tool description
@@ -256,14 +266,24 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 - [FirstPromoter LLM-friendly API Index](https://docs.firstpromoter.com/llms.txt)
 - [Streamable HTTP Transport Guide](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/server.md)
 
-## Phase 2 Requirements (Next)
+## Phase 2 Requirements (Next) — Add Remaining API Tools
 
-1. Add Streamable HTTP transport alongside stdio
-2. Create proper Dockerfile for production
-3. Set up docker-compose for local testing
-4. Deploy to Hetzner via Dokploy
-5. Configure Traefik for HTTPS at mcp.claritynodes.com
-6. Test with Claude Desktop using remote URL
+1. Implement commissions tools (list, create, approve, deny, mark fulfilled/unfulfilled)
+2. Implement referrals tools (list, get, update, move, delete)
+3. Implement payouts tools (list, grouped, due stats, stats)
+4. Implement reports tools (campaigns, overview, promoters, traffic sources, URLs)
+5. Implement promo codes tools (list, create, get, update, archive)
+6. Implement promoter campaigns tools (list, update)
+7. Implement remaining promoter tools (get details, create, update, accept, reject, block, archive, restore, campaign management)
+
+## Future: Remote Server (Separate Repo)
+
+A separate repository will be created for the remote MCP server:
+- Streamable HTTP transport (replaces stdio)
+- OAuth authentication (Google)
+- Deployed to Hetzner via Dokploy/Docker/Traefik
+- Domain: mcp.claritynodes.com
+- Multi-user support with session management
 
 ## Notes for Claude
 
@@ -273,4 +293,4 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 - Keep the educational comments in code
 - Test Docker builds locally before suggesting deployment
 - Do NOT read .env file without asking — it contains secrets
-- When adding new API endpoints, fetch the doc page from FirstPromoter docs site to get full param specs
+- When adding new API endpoints, read the local doc from `docs/firstpromoter-api/` first. Only fetch from online docs if the local file is missing.
