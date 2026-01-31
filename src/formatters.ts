@@ -135,6 +135,42 @@ export function formatPromoters(data: unknown): string {
 }
 
 // ============================================================================
+// BATCH RESULT FORMATTER
+// ============================================================================
+
+/**
+ * Formats a batch operation result (accept, reject, block, archive, etc.).
+ *
+ * Batch endpoints return an object describing the operation outcome:
+ * { id, status, total, selected_total, processed_count, failed_count,
+ *   action_label, progress, processing_errors[], created_at, updated_at }
+ *
+ * If >5 promoter IDs are sent, the operation runs asynchronously and
+ * the status will be "in_progress" instead of "completed".
+ */
+export function formatBatchResult(data: unknown): string {
+  const batch = data as Record<string, unknown>;
+  const lines: string[] = [];
+
+  lines.push(`Batch operation: ${batch.action_label || 'N/A'}`);
+  lines.push(`Status: ${batch.status || 'N/A'}`);
+  lines.push(`Batch ID: ${batch.id ?? 'N/A'}`);
+  lines.push(`Total: ${batch.total ?? 'N/A'} | Selected: ${batch.selected_total ?? 'N/A'}`);
+  lines.push(`Processed: ${batch.processed_count ?? 0} | Failed: ${batch.failed_count ?? 0}`);
+  lines.push(`Progress: ${batch.progress ?? 'N/A'}%`);
+
+  // Show processing errors if any
+  const errors = batch.processing_errors as string[] | undefined;
+  if (errors && errors.length > 0) {
+    lines.push(`Errors: ${errors.join(', ')}`);
+  }
+
+  lines.push(`Created: ${batch.created_at || 'N/A'}`);
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // FUTURE FORMATTERS
 // ============================================================================
 // Add new formatters here as more API endpoints are implemented:

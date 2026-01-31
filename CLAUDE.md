@@ -34,7 +34,7 @@ firstpromoter-mcp/
 │   ├── formatters.ts     # Response formatters (structured text + raw JSON)
 │   └── tools/
 │       ├── index.ts      # Tool registry — registers all tools with the server
-│       └── promoters.ts  # get_promoters (26 params) + get_promoter (3 params) + update_promoter (24 params)
+│       └── promoters.ts  # get_promoters (26 params) + get_promoter (3 params) + create_promoter (21 params) + update_promoter (24 params) + accept_promoters (2 params) + reject_promoters (2 params) + block_promoters (2 params) + archive_promoters (1 param) + restore_promoters (1 param) + move_promoters_to_campaign (5 params) + add_promoters_to_campaign (3 params) + assign_parent_promoter (2 params)
 ├── docs/                  # Local copies of reference documentation
 │   ├── anthropic-mcp/               # MCP specification docs
 │   │   └── llms-full.txt
@@ -154,16 +154,16 @@ The handler maps flat Zod params to the API's expected format:
 **Promoters:**
 - GET /promoters — List promoters (✅ implemented — 26 query params, full response docs)
 - GET /promoters/:id — Get promoter details (✅ implemented — find_by support)
-- POST /promoters — Create promoter
+- POST /promoters — Create promoter (✅ implemented — 21 body params, profile fields + initial_campaign_id + drip_emails)
 - PUT /promoters/:id — Update promoter (✅ implemented — 24 body params, find_by support)
-- POST /promoters/accept — Accept promoters
-- POST /promoters/reject — Reject promoters
-- POST /promoters/block — Block promoters
-- POST /promoters/archive — Archive promoters
-- POST /promoters/restore — Restore promoters
-- POST /promoters/add_to_campaign — Add to campaign
-- POST /promoters/move_to_campaign — Move to campaign
-- POST /promoters/assign_parent — Assign parent promoter
+- POST /promoters/accept — Accept promoters (✅ implemented — batch operation, async if >5 IDs)
+- POST /promoters/reject — Reject promoters (✅ implemented — batch operation, async if >5 IDs)
+- POST /promoters/block — Block promoters (✅ implemented — batch operation, async if >5 IDs)
+- POST /promoters/archive — Archive promoters (✅ implemented — batch operation, no campaign_id, async if >5 IDs)
+- POST /promoters/restore — Restore promoters (✅ implemented — batch operation, no campaign_id, async if >5 IDs)
+- POST /promoters/add_to_campaign — Add to campaign (✅ implemented — batch operation, campaign_id + drip_emails, async if >5 IDs)
+- POST /promoters/move_to_campaign — Move to campaign (✅ implemented — batch operation, from/to campaign IDs + drip_emails + soft_move_referrals, async if >5 IDs)
+- POST /promoters/assign_parent — Assign parent promoter (✅ implemented — batch operation, parent_promoter_id + ids, async if >5 IDs)
 
 **Referrals:**
 - GET /referrals — List referrals (filters: type, promoter_id, state, search by email/uid)
@@ -301,7 +301,7 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 4. Implement reports tools (campaigns, overview, promoters, traffic sources, URLs)
 5. Implement promo codes tools (list, create, get, update, archive)
 6. Implement promoter campaigns tools (list, update)
-7. Implement remaining promoter tools (create, accept, reject, block, archive, restore, campaign management)
+7. Implement remaining promoter tools (create, reject, block, archive, restore, campaign management)
 
 ## Future: Remote Server (Separate Repo)
 

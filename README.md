@@ -112,6 +112,7 @@ Ask Claude:
 - "Show me promoters sorted by revenue"
 - "Find promoters who joined this month"
 - "Show accepted promoters with more than 10 customers"
+- "Accept promoter ID 12345 into campaign 1"
 
 ## Available Tools
 
@@ -173,6 +174,142 @@ Lists promoters from your FirstPromoter account with full filtering, sorting, an
 - Dates: joined_at, last_login_at, created_at, archived_at
 - Fraud: fraud_suspicions array
 
+### get_promoter
+
+Gets details for a single promoter by numeric ID or alternative lookup (email, auth_token, ref_token, promo_code).
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Promoter's numeric ID (required unless using find_by) |
+| `find_by` | enum | Alternative lookup: `email`, `auth_token`, `ref_token`, `promo_code` |
+| `find_by_value` | string | The value to look up (e.g. the email address) |
+
+### update_promoter
+
+Updates a promoter's information. Only provided fields are changed.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `id` | number | Promoter's numeric ID (required unless using find_by) |
+| `find_by` / `find_by_value` | enum / string | Alternative lookup |
+| `email` | string | New email address |
+| `first_name`, `last_name` | string | Name fields |
+| `website`, `company_name`, `phone_number` | string | Profile fields |
+| `country` | string | 2-char code (e.g. `US`) |
+| `instagram_url`, `linkedin_url`, ... | string | Social URLs |
+| `custom_fields` | object | Key-value pairs |
+
+**Read-only fields** (returned but not updatable): `note`, `description`
+
+### accept_promoters
+
+Accepts one or more pending promoters into a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `campaign_id` | number | Yes | Campaign to accept promoters into |
+| `ids` | number[] | No | Promoter IDs to accept (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### reject_promoters
+
+Rejects one or more promoters from a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `campaign_id` | number | Yes | Campaign to reject promoters from |
+| `ids` | number[] | No | Promoter IDs to reject (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### block_promoters
+
+Blocks one or more promoters from a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `campaign_id` | number | Yes | Campaign to block promoters from |
+| `ids` | number[] | No | Promoter IDs to block (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### archive_promoters
+
+Archives one or more promoters. Unlike accept/reject/block, no campaign_id is needed — archiving is global. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ids` | number[] | No | Promoter IDs to archive (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### restore_promoters
+
+Restores (unarchives) one or more archived promoters. Like archive, no campaign_id is needed. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `ids` | number[] | No | Promoter IDs to restore (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### move_promoters_to_campaign
+
+Moves one or more promoters from one campaign to another. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `from_campaign_id` | number | Yes | Campaign to move promoters FROM |
+| `to_campaign_id` | number | Yes | Campaign to move promoters TO |
+| `ids` | number[] | No | Promoter IDs to move (async if >5) |
+| `drip_emails` | boolean | No | Send email notification to promoter |
+| `soft_move_referrals` | boolean | No | If true, move referrals to new campaign; if false, keep in old |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### add_promoters_to_campaign
+
+Adds one or more promoters to a campaign (without removing them from their current campaign). This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `campaign_id` | number | Yes | Campaign to add promoters to |
+| `ids` | number[] | No | Promoter IDs to add (async if >5) |
+| `drip_emails` | boolean | No | Send email notification to promoter |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
+### create_promoter
+
+Creates a new promoter. Only email is required — all other fields are optional.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | string | Yes | Promoter's email address |
+| `cust_id` | string | No | Custom customer identifier |
+| `initial_campaign_id` | number | No | Campaign to add the promoter to initially |
+| `drip_emails` | boolean | No | Send welcome email to promoter |
+| `first_name`, `last_name` | string | No | Name fields |
+| `website`, `company_name`, `phone_number` | string | No | Profile fields |
+| `country` | string | No | 2-char code (e.g. `US`) |
+| `description` | string | No | Promoter description / bio |
+| `instagram_url`, `linkedin_url`, ... | string | No | Social URLs |
+| `custom_fields` | object | No | Key-value pairs |
+
+**Response:** Full promoter object with profile, stats, campaigns, and dates.
+
+### assign_parent_promoter
+
+Assigns a parent promoter to one or more promoters (creates a sub-affiliate relationship). This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `parent_promoter_id` | number | Yes | ID of the parent promoter to assign |
+| `ids` | number[] | No | Promoter IDs to become children of the parent (async if >5) |
+
+**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+
 ## Project Structure
 
 ```
@@ -183,7 +320,7 @@ firstpromoter-mcp/
 │   ├── formatters.ts     # Response formatters (structured text + raw JSON)
 │   └── tools/
 │       ├── index.ts      # Tool registry
-│       └── promoters.ts  # get_promoters tool definition
+│       └── promoters.ts  # Promoter tools (get, list, update, accept)
 ├── dist/                  # Compiled JavaScript
 ├── Dockerfile             # Multi-stage Docker build
 ├── package.json
@@ -202,7 +339,7 @@ firstpromoter-mcp/
 
 ## Roadmap
 
-- [x] **Phase 1**: Local stdio server with get_promoters (all API params)
+- [x] **Phase 1**: Local stdio server with all promoter tools (get_promoters, get_promoter, create_promoter, update_promoter, accept_promoters, reject_promoters, block_promoters, archive_promoters, restore_promoters, move_promoters_to_campaign, add_promoters_to_campaign, assign_parent_promoter)
 - [ ] **Phase 2**: Add remaining API tools (commissions, referrals, payouts, reports, promo codes)
 - [ ] **Phase 3**: Production polish (error handling, logging, rate limiting)
 

@@ -10,7 +10,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { callFirstPromoterAPI } from '../api.js';
-import { formatPromoters, buildToolResponse } from '../formatters.js';
+import { formatPromoters, formatBatchResult, buildToolResponse } from '../formatters.js';
 
 /**
  * Registers all promoter-related tools with the MCP server.
@@ -661,6 +661,935 @@ export function registerPromoterTools(server: McpServer): void {
           content: [{
             type: "text" as const,
             text: `Error updating promoter: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: accept_promoters
+  //
+  // Accepts one or more pending promoters into a campaign.
+  // Sends POST to /promoters/accept.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...accept-promoters...md
+  // ==========================================================================
+  server.registerTool(
+    "accept_promoters",
+
+    {
+      title: "Accept Promoters",
+      description:
+        "Accept one or more pending promoters into a specific campaign in FirstPromoter. " +
+        "This is a batch operation — you must provide the campaign_id to accept promoters into, " +
+        "and optionally an array of promoter ids. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        campaign_id: z.number().int()
+          .describe("The ID of the campaign to accept promoters into (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to accept. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          campaign_id: args.campaign_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/accept
+        const result = await callFirstPromoterAPI('/promoters/accept', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error accepting promoters: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: reject_promoters
+  //
+  // Rejects one or more promoters from a campaign.
+  // Sends POST to /promoters/reject.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...reject-promoters...md
+  // ==========================================================================
+  server.registerTool(
+    "reject_promoters",
+
+    {
+      title: "Reject Promoters",
+      description:
+        "Reject one or more promoters from a specific campaign in FirstPromoter. " +
+        "This is a batch operation — you must provide the campaign_id to reject promoters from, " +
+        "and optionally an array of promoter ids. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        campaign_id: z.number().int()
+          .describe("The ID of the campaign to reject promoters from (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to reject. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          campaign_id: args.campaign_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/reject
+        const result = await callFirstPromoterAPI('/promoters/reject', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error rejecting promoters: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: block_promoters
+  //
+  // Blocks one or more promoters from a campaign.
+  // Sends POST to /promoters/block.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...block-promoters...md
+  // ==========================================================================
+  server.registerTool(
+    "block_promoters",
+
+    {
+      title: "Block Promoters",
+      description:
+        "Block one or more promoters from a specific campaign in FirstPromoter. " +
+        "This is a batch operation — you must provide the campaign_id to block promoters from, " +
+        "and optionally an array of promoter ids. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        campaign_id: z.number().int()
+          .describe("The ID of the campaign to block promoters from (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to block. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          campaign_id: args.campaign_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/block
+        const result = await callFirstPromoterAPI('/promoters/block', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error blocking promoters: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: archive_promoters
+  //
+  // Archives one or more promoters.
+  // Sends POST to /promoters/archive.
+  //
+  // Unlike accept/reject/block, this endpoint does NOT require a campaign_id —
+  // archiving applies to the promoter globally, not per-campaign.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...archive-promoters...md
+  // ==========================================================================
+  server.registerTool(
+    "archive_promoters",
+
+    {
+      title: "Archive Promoters",
+      description:
+        "Archive one or more promoters in FirstPromoter. " +
+        "This is a batch operation — provide an array of promoter ids to archive. " +
+        "Unlike accept/reject/block, no campaign_id is needed — archiving is global. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to archive. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {};
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/archive
+        const result = await callFirstPromoterAPI('/promoters/archive', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error archiving promoters: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: restore_promoters
+  //
+  // Restores (unarchives) one or more archived promoters.
+  // Sends POST to /promoters/restore.
+  //
+  // Like archive, this endpoint does NOT require a campaign_id —
+  // restoring applies to the promoter globally.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...restore-unarchived-promoters...md
+  // ==========================================================================
+  server.registerTool(
+    "restore_promoters",
+
+    {
+      title: "Restore Promoters",
+      description:
+        "Restore (unarchive) one or more archived promoters in FirstPromoter. " +
+        "This is a batch operation — provide an array of promoter ids to restore. " +
+        "Like archive, no campaign_id is needed — restoring is global. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to restore. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {};
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/restore
+        const result = await callFirstPromoterAPI('/promoters/restore', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error restoring promoters: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: move_promoters_to_campaign
+  //
+  // Moves one or more promoters from one campaign to another.
+  // Sends POST to /promoters/move_to_campaign.
+  //
+  // Has two required campaign IDs (from + to) plus optional ids,
+  // drip_emails, and soft_move_referrals flags.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...move-promoter-to-campaign...md
+  // ==========================================================================
+  server.registerTool(
+    "move_promoters_to_campaign",
+
+    {
+      title: "Move Promoters to Campaign",
+      description:
+        "Move one or more promoters from one campaign to another in FirstPromoter. " +
+        "This is a batch operation — you must provide from_campaign_id (source) and " +
+        "to_campaign_id (destination), and optionally an array of promoter ids. " +
+
+        "OPTIONS: " +
+        "drip_emails — if true, sends an email to the promoter for this action. " +
+        "soft_move_referrals — if true, move referrals to the NEW campaign and future " +
+        "commissions from existing referrals will be tracked in the NEW campaign. " +
+        "If false, keep referrals in the OLD campaign and future commissions from " +
+        "existing referrals will be tracked in the OLD campaign. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        from_campaign_id: z.number().int()
+          .describe("The ID of the campaign to move promoters FROM (required)."),
+
+        to_campaign_id: z.number().int()
+          .describe("The ID of the campaign to move promoters TO (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to move. If >5 IDs, the operation runs asynchronously."),
+
+        drip_emails: z.boolean()
+          .optional()
+          .describe("If true, sends an email notification to the promoter for this action."),
+
+        soft_move_referrals: z.boolean()
+          .optional()
+          .describe(
+            "If true, move referrals to the NEW campaign — future commissions from existing " +
+            "referrals will be tracked in the NEW campaign. If false, keep referrals in the OLD " +
+            "campaign — future commissions from existing referrals stay in the OLD campaign."
+          ),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          from_campaign_id: args.from_campaign_id,
+          to_campaign_id: args.to_campaign_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+        if (args.drip_emails !== undefined) {
+          body.drip_emails = args.drip_emails;
+        }
+        if (args.soft_move_referrals !== undefined) {
+          body.soft_move_referrals = args.soft_move_referrals;
+        }
+
+        // Call POST /promoters/move_to_campaign
+        const result = await callFirstPromoterAPI('/promoters/move_to_campaign', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error moving promoters to campaign: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: add_promoters_to_campaign
+  //
+  // Adds one or more promoters to a campaign (they can be in multiple campaigns).
+  // Sends POST to /promoters/add_to_campaign.
+  //
+  // Unlike move_to_campaign, this doesn't remove promoters from their current
+  // campaign — it adds them to an additional campaign.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...add-promoter-to-campaign...md
+  // ==========================================================================
+  server.registerTool(
+    "add_promoters_to_campaign",
+
+    {
+      title: "Add Promoters to Campaign",
+      description:
+        "Add one or more promoters to a campaign in FirstPromoter. " +
+        "Unlike move_promoters_to_campaign, this does NOT remove promoters from their " +
+        "current campaign — it adds them to an additional campaign. " +
+        "This is a batch operation — you must provide the campaign_id to add promoters to, " +
+        "and optionally an array of promoter ids. " +
+
+        "OPTIONS: " +
+        "drip_emails — if true, sends an email to the promoter for this action. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        campaign_id: z.number().int()
+          .describe("The ID of the campaign to add promoters to (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs to add. If >5 IDs, the operation runs asynchronously."),
+
+        drip_emails: z.boolean()
+          .optional()
+          .describe("If true, sends an email notification to the promoter for this action."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          campaign_id: args.campaign_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+        if (args.drip_emails !== undefined) {
+          body.drip_emails = args.drip_emails;
+        }
+
+        // Call POST /promoters/add_to_campaign
+        const result = await callFirstPromoterAPI('/promoters/add_to_campaign', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error adding promoters to campaign: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: create_promoter
+  //
+  // Creates a new promoter in FirstPromoter.
+  // Sends POST to /promoters.
+  //
+  // The body accepts an email (required), optional profile fields (nested),
+  // cust_id, initial_campaign_id, and drip_emails flag.
+  //
+  // Returns the full promoter object (same as get_promoter).
+  //
+  // API docs: docs/firstpromoter-api/promoters/...create-promoter...md
+  // ==========================================================================
+  server.registerTool(
+    "create_promoter",
+
+    {
+      title: "Create Promoter",
+      description:
+        "Create a new promoter in FirstPromoter. " +
+        "Only email is required — all other fields are optional. " +
+
+        "BODY PARAMETERS: " +
+        "email (required) — promoter's email address. " +
+        "cust_id — custom customer identifier. " +
+        "initial_campaign_id — campaign ID to add the promoter to initially. " +
+        "drip_emails — if true, sends a welcome email to the promoter. " +
+        "Profile fields (all optional): first_name, last_name, website, company_name, " +
+        "company_number, phone_number, vat_id, country (2-char code), address, description. " +
+        "Social URLs (all optional): instagram_url, youtube_url, linkedin_url, " +
+        "facebook_url, twitter_url, twitch_url, tiktok_url. " +
+        "custom_fields — key-value pairs matching your company's custom field config. " +
+
+        "RESPONSE STRUCTURE — returns the full promoter object: " +
+        "id, email, name, cust_id, note, state (pending/accepted/rejected/blocked/inactive/not_set), " +
+        "stats { clicks_count, referrals_count, sales_count, customers_count, revenue_amount, active_customers_count }, " +
+        "is_customized, fraud_suspicions[], is_confirmed, invoice_details_status, " +
+        "profile { first_name, last_name, website, company_name, company_number, phone_number, " +
+        "vat_id, country, address, avatar, w8_form_url, w9_form_url, description, " +
+        "instagram_url, youtube_url, linkedin_url, facebook_url, twitter_url, twitch_url, tiktok_url }, " +
+        "joined_at, last_login_at, archived_at, custom_fields, password_setup_url, " +
+        "first_event_at, created_at, updated_at, " +
+        "promoter_campaigns[] { id, campaign_id, promoter_id, state, campaign { id, name, color }, " +
+        "coupon, ref_token, ref_link }. " +
+
+        "IMPORTANT: When presenting results, cite exact values from the response. " +
+        "Do NOT guess or infer any fields.",
+
+      inputSchema: {
+        // --- Required field ---
+        email: z.string()
+          .describe("Email address of the promoter (required)."),
+
+        // --- Optional top-level fields ---
+        cust_id: z.string()
+          .nullable()
+          .optional()
+          .describe("Custom customer identifier"),
+
+        initial_campaign_id: z.number().int()
+          .optional()
+          .describe("The ID of the campaign to add the promoter to initially."),
+
+        drip_emails: z.boolean()
+          .optional()
+          .describe("If true, sends a welcome email to the promoter."),
+
+        // --- Profile fields (mapped to nested profile object in the body) ---
+        first_name: z.string().optional()
+          .describe("Promoter's first name"),
+
+        last_name: z.string().optional()
+          .describe("Promoter's last name"),
+
+        website: z.string().optional()
+          .describe("Promoter's website URL"),
+
+        company_name: z.string().optional()
+          .describe("Business / company name"),
+
+        company_number: z.string().optional()
+          .describe("Company registration number"),
+
+        phone_number: z.string().optional()
+          .describe("Contact phone number"),
+
+        vat_id: z.string().optional()
+          .describe("VAT identifier"),
+
+        country: z.string().optional()
+          .describe("2-character country code (e.g. 'US', 'GB', 'DE')"),
+
+        address: z.string().optional()
+          .describe("Physical / mailing address"),
+
+        description: z.string().optional()
+          .describe("Description / bio of the promoter"),
+
+        // --- Social URLs (mapped to profile object) ---
+        instagram_url: z.string().optional()
+          .describe("Instagram profile URL"),
+
+        youtube_url: z.string().optional()
+          .describe("YouTube channel URL"),
+
+        linkedin_url: z.string().optional()
+          .describe("LinkedIn profile URL"),
+
+        facebook_url: z.string().optional()
+          .describe("Facebook profile URL"),
+
+        twitter_url: z.string().optional()
+          .describe("Twitter / X profile URL"),
+
+        twitch_url: z.string().optional()
+          .describe("Twitch channel URL"),
+
+        tiktok_url: z.string().optional()
+          .describe("TikTok profile URL"),
+
+        // --- Custom fields ---
+        custom_fields: z.record(z.string()).optional()
+          .describe("Custom fields as key-value pairs matching your company's custom field config " +
+            "(e.g. { \"my_field\": \"value\" }). Keys must match fields set in Settings > Affiliate portal > Custom fields."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          email: args.email,
+        };
+
+        // Optional top-level fields
+        if (args.cust_id !== undefined) body.cust_id = args.cust_id;
+        if (args.initial_campaign_id !== undefined) body.initial_campaign_id = args.initial_campaign_id;
+        if (args.drip_emails !== undefined) body.drip_emails = args.drip_emails;
+
+        // Profile fields — collect into nested profile object
+        // The API expects: { "profile": { "first_name": "...", ... } }
+        const profileFields = [
+          'first_name', 'last_name', 'website', 'company_name', 'company_number',
+          'phone_number', 'vat_id', 'country', 'address', 'description',
+          'instagram_url', 'youtube_url', 'linkedin_url', 'facebook_url',
+          'twitter_url', 'twitch_url', 'tiktok_url'
+        ];
+
+        const profile: Record<string, unknown> = {};
+        for (const field of profileFields) {
+          const value = (args as Record<string, unknown>)[field];
+          if (value !== undefined) {
+            profile[field] = value;
+          }
+        }
+
+        if (Object.keys(profile).length > 0) {
+          body.profile = profile;
+        }
+
+        // Custom fields — pass as-is (key-value object)
+        if (args.custom_fields) {
+          body.custom_fields = args.custom_fields;
+        }
+
+        // Call POST /promoters
+        const result = await callFirstPromoterAPI('/promoters', {
+          method: 'POST',
+          body
+        });
+
+        // Format response — wrap single promoter in array for the list formatter
+        const summary = `Created promoter successfully.\n\n${formatPromoters([result])}`;
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error creating promoter: ${errorMessage}`
+          }],
+          isError: true
+        };
+      }
+    }
+  );
+
+  // ==========================================================================
+  // Tool: assign_parent_promoter
+  //
+  // Assigns a parent promoter to one or more promoters (sub-affiliate relationship).
+  // Sends POST to /promoters/assign_parent.
+  //
+  // If >5 IDs are passed, FirstPromoter processes the operation
+  // asynchronously (response status will be "in_progress").
+  //
+  // API docs: docs/firstpromoter-api/promoters/...assign-parent-promoter...md
+  // ==========================================================================
+  server.registerTool(
+    "assign_parent_promoter",
+
+    {
+      title: "Assign Parent Promoter",
+      description:
+        "Assign a parent promoter to one or more promoters in FirstPromoter (creates a sub-affiliate relationship). " +
+        "This is a batch operation — you must provide the parent_promoter_id to assign as the parent, " +
+        "and optionally an array of promoter ids that will become children of that parent. " +
+
+        "ASYNC NOTE: If more than 5 ids are provided, the operation runs asynchronously. " +
+        "The response status will be 'in_progress' instead of 'completed'. " +
+
+        "RESPONSE STRUCTURE — returns a batch result object: " +
+        "id (batch ID), status (pending/in_progress/completed/failed/stopped), " +
+        "total, selected_total, processed_count, failed_count, " +
+        "action_label, progress (0-100), processing_errors[], " +
+        "created_at, updated_at, meta. " +
+
+        "IMPORTANT: When presenting results, cite the exact status and counts from the response.",
+
+      inputSchema: {
+        parent_promoter_id: z.number().int()
+          .describe("The ID of the parent promoter to assign the promoters to (required)."),
+
+        ids: z.array(z.number().int())
+          .optional()
+          .describe("Array of promoter IDs that will become children of the parent. If >5 IDs, the operation runs asynchronously."),
+      }
+    },
+
+    async (args) => {
+      try {
+        // Build the JSON request body
+        const body: Record<string, unknown> = {
+          parent_promoter_id: args.parent_promoter_id,
+        };
+
+        if (args.ids) {
+          body.ids = args.ids;
+        }
+
+        // Call POST /promoters/assign_parent
+        const result = await callFirstPromoterAPI('/promoters/assign_parent', {
+          method: 'POST',
+          body
+        });
+
+        // Format response using the batch result formatter
+        const summary = formatBatchResult(result);
+        const responseText = buildToolResponse(summary, result);
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: responseText
+          }]
+        };
+
+      } catch (error) {
+        const errorMessage = error instanceof Error
+          ? error.message
+          : 'Unknown error occurred';
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Error assigning parent promoter: ${errorMessage}`
           }],
           isError: true
         };
