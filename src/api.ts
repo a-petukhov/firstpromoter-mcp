@@ -36,7 +36,7 @@ export async function callFirstPromoterAPI(
   options: {
     method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
     body?: Record<string, unknown>;
-    queryParams?: Record<string, string>;
+    queryParams?: Record<string, string> | URLSearchParams;
   } = {}
 ): Promise<unknown> {
   // Check if credentials are configured

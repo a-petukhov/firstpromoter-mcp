@@ -110,217 +110,107 @@ Restart Claude Desktop after editing the config.
 Ask Claude:
 - "List my promoters"
 - "Show me promoters sorted by revenue"
-- "Find promoters who joined this month"
-- "Show accepted promoters with more than 10 customers"
-- "Accept promoter ID 12345 into campaign 1"
+- "Show all commissions for this month"
+- "Get a campaign performance report for Q1"
+- "List all promo codes"
 
-## Available Tools
+## Available Tools (40 total)
 
-### get_promoters
+### Promoters (12 tools)
 
-Lists promoters from your FirstPromoter account with full filtering, sorting, and search capabilities.
+| Tool | Description |
+|------|-------------|
+| `get_promoters` | List promoters with 26 filter/sort/search params |
+| `get_promoter` | Get single promoter by ID or lookup (email, auth_token, ref_token, promo_code) |
+| `create_promoter` | Create a new promoter (21 params) |
+| `update_promoter` | Update promoter info (24 params, find_by support) |
+| `accept_promoters` | Accept pending promoters into a campaign (batch) |
+| `reject_promoters` | Reject promoters from a campaign (batch) |
+| `block_promoters` | Block promoters from a campaign (batch) |
+| `archive_promoters` | Archive promoters globally (batch) |
+| `restore_promoters` | Restore archived promoters (batch) |
+| `move_promoters_to_campaign` | Move promoters between campaigns (batch) |
+| `add_promoters_to_campaign` | Add promoters to a campaign (batch) |
+| `assign_parent_promoter` | Set parent promoter for sub-affiliate relationship (batch) |
 
-**Search & Pagination:**
+### Referrals (5 tools)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `q` | string | Search by email, name, or ref_id |
-| `ids` | number[] | Filter by specific promoter IDs |
-| `page` | number | Page number (starts at 1) |
-| `per_page` | number | Results per page (1-100, default 20) |
+| Tool | Description |
+|------|-------------|
+| `get_referrals` | List referrals with filters (type, promoter_id, state, search) |
+| `get_referral` | Get single referral by ID or lookup (email, uid, username) |
+| `update_referral` | Update referral (email, uid, username, promoter_campaign_id, split_details) |
+| `move_referrals_to_promoter` | Move referrals to a different promoter (batch) |
+| `delete_referrals` | Delete referrals (batch) |
 
-**Filters:**
+### Commissions (7 tools)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `state` | enum | `pending`, `accepted`, `rejected`, `blocked`, `inactive`, `not_set` |
-| `campaign_id` | number | Filter by campaign |
-| `parent_promoter_id` | number | Filter by parent promoter (sub-affiliates) |
-| `archived` | boolean | Archived status |
-| `has_wform` | enum | W-form status: `yes` or `no` |
-| `subscribed_to_email` | boolean | Email subscription status |
-| `custom_field1` | string | Custom field 1 value |
-| `custom_field2` | string | Custom field 2 value |
-| `fraud_suspicions` | string[] | `same_ip_suspicion`, `same_promoter_email`, `ad_source`, `no_suspicion` |
+| Tool | Description |
+|------|-------------|
+| `get_commissions` | List commissions with filters (status, paid, fulfilled, sale_amount, campaign_id, fraud_check) |
+| `create_commission` | Create a commission (sale type or custom type) |
+| `update_commission` | Update commission notes (internal_note, external_note) |
+| `approve_commissions` | Approve commissions (batch) |
+| `deny_commissions` | Deny commissions (batch) |
+| `mark_commissions_fulfilled` | Mark non-monetary commissions as fulfilled (batch) |
+| `mark_commissions_unfulfilled` | Mark non-monetary commissions as unfulfilled (batch) |
 
-**Range Filters:**
+### Payouts (4 tools)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `revenue_amount_from` / `_to` | number | Revenue range (in cents) |
-| `customers_count_from` / `_to` | number | Customer count range |
-| `referrals_count_from` / `_to` | number | Referral count range |
-| `clicks_count_from` / `_to` | number | Click count range |
+| Tool | Description |
+|------|-------------|
+| `get_payouts` | List payouts with 18 filter params (status, campaign, dates, method, promoter) |
+| `get_payouts_grouped_by_promoters` | Payouts aggregated by promoter |
+| `get_payout_stats` | Payout statistics with breakdowns (stats_by) |
+| `get_due_payout_stats` | Due payout statistics |
 
-**Date Filters:**
+### Reports (5 tools)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `joined_at_from` / `_to` | string | Join date range (YYYY-MM-DD HH:MM:SS) |
-| `last_login_at_from` / `_to` | string | Last login date range |
+| Tool | Description |
+|------|-------------|
+| `get_reports_campaigns` | Campaign performance reports (19 available columns, time-period breakdowns) |
+| `get_reports_overview` | Overview time-series reports |
+| `get_reports_promoters` | Promoter performance reports |
+| `get_reports_traffic_sources` | Traffic source reports (11 columns) |
+| `get_reports_urls` | URL performance reports (12 columns) |
 
-**Sorting:**
+### Promo Codes (5 tools)
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `sort_by` | enum | `clicks_count`, `referrals_count`, `customers_count`, `revenue_amount`, `joined_at` |
-| `sort_direction` | enum | `asc` or `desc` |
+| Tool | Description |
+|------|-------------|
+| `get_promo_codes` | List promo codes (optional filter by promoter_campaign_id) |
+| `get_promo_code` | Get single promo code by ID |
+| `create_promo_code` | Create a promo code (Stripe only — requires code, reward_id, promoter_campaign_id) |
+| `update_promo_code` | Update promo code |
+| `archive_promo_code` | Archive (soft-delete) a promo code |
 
-**Response fields per promoter:**
-- Identity: id, email, name, state, note, custom_fields
-- Profile: website, company, country, phone, social links (instagram, youtube, linkedin, etc.)
-- Stats: clicks, referrals, sales, customers, active customers, revenue (in cents)
-- Campaigns: campaign name, ref link, coupon code
-- Dates: joined_at, last_login_at, created_at, archived_at
-- Fraud: fraud_suspicions array
+### Promoter Campaigns (2 tools)
 
-### get_promoter
+| Tool | Description |
+|------|-------------|
+| `get_promoter_campaigns` | List all promoter-campaign links with stats |
+| `update_promoter_campaign` | Update promoter campaign (ref_token, state, coupon, rewards, customization) |
 
-Gets details for a single promoter by numeric ID or alternative lookup (email, auth_token, ref_token, promo_code).
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | number | Promoter's numeric ID (required unless using find_by) |
-| `find_by` | enum | Alternative lookup: `email`, `auth_token`, `ref_token`, `promo_code` |
-| `find_by_value` | string | The value to look up (e.g. the email address) |
-
-### update_promoter
-
-Updates a promoter's information. Only provided fields are changed.
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `id` | number | Promoter's numeric ID (required unless using find_by) |
-| `find_by` / `find_by_value` | enum / string | Alternative lookup |
-| `email` | string | New email address |
-| `first_name`, `last_name` | string | Name fields |
-| `website`, `company_name`, `phone_number` | string | Profile fields |
-| `country` | string | 2-char code (e.g. `US`) |
-| `instagram_url`, `linkedin_url`, ... | string | Social URLs |
-| `custom_fields` | object | Key-value pairs |
-
-**Read-only fields** (returned but not updatable): `note`, `description`
-
-### accept_promoters
-
-Accepts one or more pending promoters into a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `campaign_id` | number | Yes | Campaign to accept promoters into |
-| `ids` | number[] | No | Promoter IDs to accept (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### reject_promoters
-
-Rejects one or more promoters from a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `campaign_id` | number | Yes | Campaign to reject promoters from |
-| `ids` | number[] | No | Promoter IDs to reject (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### block_promoters
-
-Blocks one or more promoters from a campaign. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `campaign_id` | number | Yes | Campaign to block promoters from |
-| `ids` | number[] | No | Promoter IDs to block (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### archive_promoters
-
-Archives one or more promoters. Unlike accept/reject/block, no campaign_id is needed — archiving is global. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `ids` | number[] | No | Promoter IDs to archive (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### restore_promoters
-
-Restores (unarchives) one or more archived promoters. Like archive, no campaign_id is needed. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `ids` | number[] | No | Promoter IDs to restore (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### move_promoters_to_campaign
-
-Moves one or more promoters from one campaign to another. This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `from_campaign_id` | number | Yes | Campaign to move promoters FROM |
-| `to_campaign_id` | number | Yes | Campaign to move promoters TO |
-| `ids` | number[] | No | Promoter IDs to move (async if >5) |
-| `drip_emails` | boolean | No | Send email notification to promoter |
-| `soft_move_referrals` | boolean | No | If true, move referrals to new campaign; if false, keep in old |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### add_promoters_to_campaign
-
-Adds one or more promoters to a campaign (without removing them from their current campaign). This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `campaign_id` | number | Yes | Campaign to add promoters to |
-| `ids` | number[] | No | Promoter IDs to add (async if >5) |
-| `drip_emails` | boolean | No | Send email notification to promoter |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
-
-### create_promoter
-
-Creates a new promoter. Only email is required — all other fields are optional.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `email` | string | Yes | Promoter's email address |
-| `cust_id` | string | No | Custom customer identifier |
-| `initial_campaign_id` | number | No | Campaign to add the promoter to initially |
-| `drip_emails` | boolean | No | Send welcome email to promoter |
-| `first_name`, `last_name` | string | No | Name fields |
-| `website`, `company_name`, `phone_number` | string | No | Profile fields |
-| `country` | string | No | 2-char code (e.g. `US`) |
-| `description` | string | No | Promoter description / bio |
-| `instagram_url`, `linkedin_url`, ... | string | No | Social URLs |
-| `custom_fields` | object | No | Key-value pairs |
-
-**Response:** Full promoter object with profile, stats, campaigns, and dates.
-
-### assign_parent_promoter
-
-Assigns a parent promoter to one or more promoters (creates a sub-affiliate relationship). This is a batch operation — if more than 5 IDs are provided, the operation runs asynchronously.
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `parent_promoter_id` | number | Yes | ID of the parent promoter to assign |
-| `ids` | number[] | No | Promoter IDs to become children of the parent (async if >5) |
-
-**Response:** Batch result with status (`completed` / `in_progress`), processed/failed counts, and any processing errors.
+All batch operations run asynchronously when more than 5 IDs are provided. Monetary amounts are in cents (divide by 100 for dollars).
 
 ## Project Structure
 
 ```
 firstpromoter-mcp/
 ├── src/
-│   ├── index.ts          # Entry point: server creation + stdio transport
-│   ├── api.ts            # FirstPromoter API helper (auth, fetch, errors)
-│   ├── formatters.ts     # Response formatters (structured text + raw JSON)
+│   ├── index.ts              # Entry point: server creation + stdio transport
+│   ├── api.ts                # FirstPromoter API helper (auth, fetch, errors)
+│   ├── formatters.ts         # Response formatters (structured text + raw JSON)
 │   └── tools/
-│       ├── index.ts      # Tool registry
-│       └── promoters.ts  # Promoter tools (get, list, update, accept)
+│       ├── index.ts              # Tool registry — registers all 40 tools
+│       ├── promoters.ts          # 12 promoter tools
+│       ├── referrals.ts          # 5 referral tools
+│       ├── commissions.ts        # 7 commission tools
+│       ├── payouts.ts            # 4 payout tools
+│       ├── reports.ts            # 5 report tools
+│       ├── promo-codes.ts        # 5 promo code tools
+│       ├── promoter-campaigns.ts # 2 promoter campaign tools
+│       └── _template.ts          # Dev template (not compiled)
 ├── dist/                  # Compiled JavaScript
 ├── Dockerfile             # Multi-stage Docker build
 ├── package.json
@@ -339,8 +229,8 @@ firstpromoter-mcp/
 
 ## Roadmap
 
-- [x] **Phase 1**: Local stdio server with all promoter tools (get_promoters, get_promoter, create_promoter, update_promoter, accept_promoters, reject_promoters, block_promoters, archive_promoters, restore_promoters, move_promoters_to_campaign, add_promoters_to_campaign, assign_parent_promoter)
-- [ ] **Phase 2**: Add remaining API tools (commissions, referrals, payouts, reports, promo codes)
+- [x] **Phase 1**: Local stdio server with all promoter tools (12 tools)
+- [x] **Phase 2**: All remaining API tools — referrals, commissions, payouts, reports, promo codes, promoter campaigns (28 tools)
 - [ ] **Phase 3**: Production polish (error handling, logging, rate limiting)
 
 A remote HTTP server with OAuth authentication will be developed as a separate project.

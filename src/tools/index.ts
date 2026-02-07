@@ -12,6 +12,12 @@
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerPromoterTools } from './promoters.js';
+import { registerReferralTools } from './referrals.js';
+import { registerCommissionTools } from './commissions.js';
+import { registerPayoutTools } from './payouts.js';
+import { registerReportTools } from './reports.js';
+import { registerPromoCodeTools } from './promo-codes.js';
+import { registerPromoterCampaignTools } from './promoter-campaigns.js';
 
 /**
  * Registers all tools with the MCP server.
@@ -19,10 +25,10 @@ import { registerPromoterTools } from './promoters.js';
  */
 export function registerAllTools(server: McpServer): void {
   registerPromoterTools(server);
-
-  // Future tools — uncomment as they're implemented:
-  // registerReferralTools(server);
-  // registerCommissionTools(server);
-  // registerPayoutTools(server);
-  // registerReportTools(server);
+  registerReferralTools(server);
+  registerCommissionTools(server);
+  registerPayoutTools(server);
+  registerReportTools(server);
+  registerPromoCodeTools(server);
+  registerPromoterCampaignTools(server);
 }

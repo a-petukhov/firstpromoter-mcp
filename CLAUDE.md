@@ -13,8 +13,8 @@ This is an MCP (Model Context Protocol) server that connects AI assistants (Clau
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| Phase 1 | ✅ Complete | Local stdio server with `get_promoters` + `get_promoter` + `update_promoter` tools (full API params) |
-| Phase 2 | 🔲 Next | Add remaining API tools (commissions, referrals, payouts, reports, promo codes) |
+| Phase 1 | ✅ Complete | Local stdio server with all promoter tools (12 tools) |
+| Phase 2 | ✅ Complete | All remaining API tools — referrals (5), commissions (7), payouts (4), reports (5), promo codes (5), promoter campaigns (2) |
 | Phase 3 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
 
 ## Tech Stack
@@ -33,8 +33,15 @@ firstpromoter-mcp/
 │   ├── api.ts            # FirstPromoter API helper (auth, fetch, error handling)
 │   ├── formatters.ts     # Response formatters (structured text + raw JSON)
 │   └── tools/
-│       ├── index.ts      # Tool registry — registers all tools with the server
-│       └── promoters.ts  # get_promoters (26 params) + get_promoter (3 params) + create_promoter (21 params) + update_promoter (24 params) + accept_promoters (2 params) + reject_promoters (2 params) + block_promoters (2 params) + archive_promoters (1 param) + restore_promoters (1 param) + move_promoters_to_campaign (5 params) + add_promoters_to_campaign (3 params) + assign_parent_promoter (2 params)
+│       ├── index.ts              # Tool registry — registers all tools with the server
+│       ├── promoters.ts          # 12 promoter tools (list, get, create, update, accept, reject, block, archive, restore, move/add to campaign, assign parent)
+│       ├── referrals.ts          # 5 referral tools (list, get, update, move to promoter, delete)
+│       ├── commissions.ts        # 7 commission tools (list, create, update, approve, deny, mark fulfilled/unfulfilled)
+│       ├── payouts.ts            # 4 payout tools (list, grouped by promoters, stats, due stats)
+│       ├── reports.ts            # 5 report tools (campaigns, overview, promoters, traffic sources, URLs)
+│       ├── promo-codes.ts        # 5 promo code tools (list, get, create, update, archive)
+│       ├── promoter-campaigns.ts # 2 promoter campaign tools (list, update)
+│       └── _template.ts          # Developer template — not compiled, copy-paste patterns for new tools
 ├── docs/                  # Local copies of reference documentation
 │   ├── anthropic-mcp/               # MCP specification docs
 │   │   └── llms-full.txt
@@ -166,44 +173,44 @@ The handler maps flat Zod params to the API's expected format:
 - POST /promoters/assign_parent — Assign parent promoter (✅ implemented — batch operation, parent_promoter_id + ids, async if >5 IDs)
 
 **Referrals:**
-- GET /referrals — List referrals (filters: type, promoter_id, state, search by email/uid)
-- GET /referrals/:id — Get referral
-- PUT /referrals/:id — Update referral
-- POST /referrals/move_to_promoter — Move to promoter
-- DELETE /referrals — Delete referrals
+- GET /referrals — List referrals (✅ implemented — filters: type, promoter_id, state, search by email/uid)
+- GET /referrals/:id — Get referral (✅ implemented — find_by support)
+- PUT /referrals/:id — Update referral (✅ implemented — email, uid, username, promoter_campaign_id, split_details)
+- POST /referrals/move_to_promoter — Move to promoter (✅ implemented — batch operation)
+- DELETE /referrals — Delete referrals (✅ implemented — batch operation)
 
 **Commissions:**
-- GET /commissions — List commissions (filters: status, paid, fulfilled, sale_amount, campaign_id, fraud_check)
-- POST /commissions — Create commission
-- PUT /commissions/:id — Update commission
-- POST /commissions/approve — Approve commissions
-- POST /commissions/deny — Deny commissions
-- POST /commissions/mark_fulfilled — Mark fulfilled
-- POST /commissions/mark_unfulfilled — Mark unfulfilled
+- GET /commissions — List commissions (✅ implemented — filters: status, paid, fulfilled, sale_amount, campaign_id, fraud_check)
+- POST /commissions — Create commission (✅ implemented — sale or custom type)
+- PUT /commissions/:id — Update commission (✅ implemented — internal_note, external_note)
+- POST /commissions/approve — Approve commissions (✅ implemented — batch operation)
+- POST /commissions/deny — Deny commissions (✅ implemented — batch operation)
+- POST /commissions/mark_fulfilled — Mark fulfilled (✅ implemented — batch operation)
+- POST /commissions/mark_unfulfilled — Mark unfulfilled (✅ implemented — batch operation)
 
 **Payouts:**
-- GET /payouts — List payouts (filters: status, campaign_id, due_period, payout_method, promoter_id)
-- GET /payouts/group_by_promoters — Grouped by promoters
-- GET /payouts/due_stats — Due payout statistics
-- GET /payouts/stats — Payout statistics
+- GET /payouts — List payouts (✅ implemented — 18 query params with filters)
+- GET /payouts/group_by_promoters — Grouped by promoters (✅ implemented)
+- GET /payouts/due_stats — Due payout statistics (✅ implemented)
+- GET /payouts/stats — Payout statistics (✅ implemented — stats_by breakdowns)
 
 **Reports:**
-- GET /reports/campaigns — Campaign reports (columns, group_by day/week/month/year, date range)
-- GET /reports/overview — Overview reports
-- GET /reports/promoters — Promoter reports
-- GET /reports/traffic_sources — Traffic source reports
-- GET /reports/urls — URL reports
+- GET /reports/campaigns — Campaign reports (✅ implemented — columns, group_by, date range)
+- GET /reports/overview — Overview reports (✅ implemented)
+- GET /reports/promoters — Promoter reports (✅ implemented)
+- GET /reports/traffic_sources — Traffic source reports (✅ implemented)
+- GET /reports/urls — URL reports (✅ implemented)
 
 **Promo Codes:**
-- GET /promo_codes — List promo codes
-- POST /promo_codes — Create promo code
-- GET /promo_codes/:id — Get promo code
-- PUT /promo_codes/:id — Update promo code
-- DELETE /promo_codes/:id — Archive promo code
+- GET /promo_codes — List promo codes (✅ implemented)
+- POST /promo_codes — Create promo code (✅ implemented — Stripe only)
+- GET /promo_codes/:id — Get promo code (✅ implemented)
+- PUT /promo_codes/:id — Update promo code (✅ implemented)
+- DELETE /promo_codes/:id — Archive promo code (✅ implemented)
 
 **Promoter Campaigns:**
-- GET /promoter_campaigns — List promoter campaigns
-- PUT /promoter_campaigns/:id — Update promoter campaign
+- GET /promoter_campaigns — List promoter campaigns (✅ implemented)
+- PUT /promoter_campaigns/:id — Update promoter campaign (✅ implemented — ref_token, state, coupon, rewards, etc.)
 
 **Batch Processes:**
 - GET /batches — List in-progress batch processes
@@ -293,15 +300,15 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 - [FirstPromoter LLM-friendly API Index](https://docs.firstpromoter.com/llms.txt)
 - [Streamable HTTP Transport Guide](https://github.com/modelcontextprotocol/typescript-sdk/blob/main/docs/server.md)
 
-## Phase 2 Requirements (Next) — Add Remaining API Tools
+## Phase 2 (Complete) — All Remaining API Tools
 
-1. Implement commissions tools (list, create, approve, deny, mark fulfilled/unfulfilled)
-2. Implement referrals tools (list, get, update, move, delete)
-3. Implement payouts tools (list, grouped, due stats, stats)
-4. Implement reports tools (campaigns, overview, promoters, traffic sources, URLs)
-5. Implement promo codes tools (list, create, get, update, archive)
-6. Implement promoter campaigns tools (list, update)
-7. Implement remaining promoter tools (create, reject, block, archive, restore, campaign management)
+All 28 tools implemented across 6 new tool files:
+1. ✅ Referrals (5 tools) — list, get, update, move to promoter, delete
+2. ✅ Commissions (7 tools) — list, create, update, approve, deny, mark fulfilled/unfulfilled
+3. ✅ Payouts (4 tools) — list, grouped by promoters, stats, due stats
+4. ✅ Reports (5 tools) — campaigns, overview, promoters, traffic sources, URLs
+5. ✅ Promo Codes (5 tools) — list, get, create, update, archive
+6. ✅ Promoter Campaigns (2 tools) — list, update
 
 ## Future: Remote Server (Separate Repo)
 
