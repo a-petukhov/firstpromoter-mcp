@@ -14,7 +14,7 @@ This is an MCP (Model Context Protocol) server that connects AI assistants (Clau
 | Phase | Status | Description |
 |-------|--------|-------------|
 | Phase 1 | ✅ Complete | Local stdio server with all promoter tools (12 tools) |
-| Phase 2 | ✅ Complete | All remaining API tools — referrals (5), commissions (7), payouts (4), reports (5), promo codes (5), promoter campaigns (2) |
+| Phase 2 | ✅ Complete | All remaining API tools — referrals (5), commissions (7), payouts (4), reports (5), promo codes (5), promoter campaigns (2), batch processes (3) |
 | Phase 3 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
 
 ## Tech Stack
@@ -41,7 +41,7 @@ firstpromoter-mcp/
 │       ├── reports.ts            # 5 report tools (campaigns, overview, promoters, traffic sources, URLs)
 │       ├── promo-codes.ts        # 5 promo code tools (list, get, create, update, archive)
 │       ├── promoter-campaigns.ts # 2 promoter campaign tools (list, update)
-│       └── _template.ts          # Developer template — not compiled, copy-paste patterns for new tools
+│       └── batch-processes.ts    # 3 batch process tools (list, get, progress)
 ├── docs/                  # Local copies of reference documentation
 │   ├── anthropic-mcp/               # MCP specification docs
 │   │   └── llms-full.txt
@@ -213,11 +213,11 @@ The handler maps flat Zod params to the API's expected format:
 - PUT /promoter_campaigns/:id — Update promoter campaign (✅ implemented — ref_token, state, coupon, rewards, etc.)
 
 **Batch Processes:**
-- GET /batches — List in-progress batch processes
-- GET /batches/:id — Show batch process
-- GET /batches/:id/progress — Show batch progress
+- GET /batch_processes — List batch processes (✅ implemented — optional status filter)
+- GET /batch_processes/:id — Show batch process (✅ implemented)
+- GET /batch_processes/progress — Show batch progress (✅ implemented — returns ID-to-percentage map)
 
-**Tracking API:**
+**Tracking API (intentionally excluded — write operations that create/modify tracking data; risk of accidental commission changes):**
 - POST /tracking/leads — Leads and signups
 - POST /tracking/sales — Sales
 - POST /tracking/refund — Refunds
@@ -302,13 +302,14 @@ After changing tool code: rebuild Docker image (`docker build -t firstpromoter-m
 
 ## Phase 2 (Complete) — All Remaining API Tools
 
-All 28 tools implemented across 6 new tool files:
+All 31 tools implemented across 7 new tool files:
 1. ✅ Referrals (5 tools) — list, get, update, move to promoter, delete
 2. ✅ Commissions (7 tools) — list, create, update, approve, deny, mark fulfilled/unfulfilled
 3. ✅ Payouts (4 tools) — list, grouped by promoters, stats, due stats
 4. ✅ Reports (5 tools) — campaigns, overview, promoters, traffic sources, URLs
 5. ✅ Promo Codes (5 tools) — list, get, create, update, archive
 6. ✅ Promoter Campaigns (2 tools) — list, update
+7. ✅ Batch Processes (3 tools) — list, get, progress
 
 ## Future: Remote Server (Separate Repo)
 

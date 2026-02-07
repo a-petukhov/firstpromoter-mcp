@@ -18,6 +18,7 @@ import { registerPayoutTools } from './payouts.js';
 import { registerReportTools } from './reports.js';
 import { registerPromoCodeTools } from './promo-codes.js';
 import { registerPromoterCampaignTools } from './promoter-campaigns.js';
+import { registerBatchProcessTools } from './batch-processes.js';
 
 /**
  * Registers all tools with the MCP server.
@@ -31,4 +32,5 @@ export function registerAllTools(server: McpServer): void {
   registerReportTools(server);
   registerPromoCodeTools(server);
   registerPromoterCampaignTools(server);
+  registerBatchProcessTools(server);
 }

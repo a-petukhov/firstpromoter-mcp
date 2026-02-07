@@ -171,6 +171,33 @@ export function formatBatchResult(data: unknown): string {
 }
 
 // ============================================================================
+// BATCH PROGRESS FORMATTER
+// ============================================================================
+
+/**
+ * Formats the batch progress map response.
+ * The API returns { "batch_id": progress_percentage, ... }
+ * E.g., { "30": 0, "31": 100, "32": 50 }
+ */
+export function formatBatchProgress(data: unknown): string {
+  const progressMap = data as Record<string, number>;
+  const entries = Object.entries(progressMap);
+
+  if (entries.length === 0) {
+    return 'No batch processes found.';
+  }
+
+  const lines: string[] = [`Found ${entries.length} batch process(es).\n`];
+
+  for (const [batchId, progress] of entries) {
+    const status = progress >= 100 ? 'done' : 'running';
+    lines.push(`  Batch #${batchId}: ${progress}% (${status})`);
+  }
+
+  return lines.join('\n');
+}
+
+// ============================================================================
 // SHARED AMOUNT HELPER
 // ============================================================================
 

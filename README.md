@@ -114,7 +114,7 @@ Ask Claude:
 - "Get a campaign performance report for Q1"
 - "List all promo codes"
 
-## Available Tools (40 total)
+## Available Tools (43 total)
 
 ### Promoters (12 tools)
 
@@ -191,6 +191,14 @@ Ask Claude:
 | `get_promoter_campaigns` | List all promoter-campaign links with stats |
 | `update_promoter_campaign` | Update promoter campaign (ref_token, state, coupon, rewards, customization) |
 
+### Batch Processes (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `get_batch_processes` | List batch processes with optional status filter |
+| `get_batch_process` | Get details of a specific batch process by ID |
+| `get_batch_progress` | Quick progress overview — map of batch IDs to completion percentage |
+
 All batch operations run asynchronously when more than 5 IDs are provided. Monetary amounts are in cents (divide by 100 for dollars).
 
 ## Project Structure
@@ -210,7 +218,7 @@ firstpromoter-mcp/
 │       ├── reports.ts            # 5 report tools
 │       ├── promo-codes.ts        # 5 promo code tools
 │       ├── promoter-campaigns.ts # 2 promoter campaign tools
-│       └── _template.ts          # Dev template (not compiled)
+│       └── batch-processes.ts    # 3 batch process tools
 ├── dist/                  # Compiled JavaScript
 ├── Dockerfile             # Multi-stage Docker build
 ├── package.json
@@ -230,7 +238,7 @@ firstpromoter-mcp/
 ## Roadmap
 
 - [x] **Phase 1**: Local stdio server with all promoter tools (12 tools)
-- [x] **Phase 2**: All remaining API tools — referrals, commissions, payouts, reports, promo codes, promoter campaigns (28 tools)
+- [x] **Phase 2**: All remaining API tools — referrals, commissions, payouts, reports, promo codes, promoter campaigns, batch processes (31 tools)
 - [ ] **Phase 3**: Production polish (error handling, logging, rate limiting)
 
 A remote HTTP server with OAuth authentication will be developed as a separate project.
