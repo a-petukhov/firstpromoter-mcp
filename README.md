@@ -207,10 +207,11 @@ All batch operations run asynchronously when more than 5 IDs are provided. Monet
 firstpromoter-mcp/
 ├── src/
 │   ├── index.ts              # Entry point: server creation + stdio transport
-│   ├── api.ts                # FirstPromoter API helper (auth, fetch, errors)
+│   ├── api.ts                # API helper (auth, fetch, errors, rate limiting, retry)
+│   ├── logger.ts             # Stderr logger (debug/info/warn/error, LOG_LEVEL)
 │   ├── formatters.ts         # Response formatters (structured text + raw JSON)
 │   └── tools/
-│       ├── index.ts              # Tool registry — registers all 40 tools
+│       ├── index.ts              # Tool registry — registers all 43 tools
 │       ├── promoters.ts          # 12 promoter tools
 │       ├── referrals.ts          # 5 referral tools
 │       ├── commissions.ts        # 7 commission tools
@@ -226,6 +227,16 @@ firstpromoter-mcp/
 └── .env.example
 ```
 
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FP_BEARER_TOKEN` | — | FirstPromoter API token (required) |
+| `FP_ACCOUNT_ID` | — | FirstPromoter account ID (required) |
+| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn`, `error` |
+
+Set `LOG_LEVEL=debug` to see every API request/response with timing. Logs go to stderr only (stdout is reserved for MCP protocol).
+
 ## Development Scripts
 
 | Command | Description |
@@ -239,7 +250,7 @@ firstpromoter-mcp/
 
 - [x] **Phase 1**: Local stdio server with all promoter tools (12 tools)
 - [x] **Phase 2**: All remaining API tools — referrals, commissions, payouts, reports, promo codes, promoter campaigns, batch processes (31 tools)
-- [ ] **Phase 3**: Production polish (error handling, logging, rate limiting)
+- [x] **Phase 3**: Production polish (error handling, logging, rate limiting)
 
 A remote HTTP server with OAuth authentication will be developed as a separate project.
 

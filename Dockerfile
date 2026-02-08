@@ -59,6 +59,7 @@ RUN npm ci --only=production && npm cache clean --force
 COPY --from=builder /app/dist ./dist
 
 ENV NODE_ENV=production
+ENV LOG_LEVEL=info
 
 # For Phase 2: HTTP transport will use this port
 # (Not used in Phase 1 stdio mode)

@@ -27,6 +27,9 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 // Tool registry — registers all tools with the server
 import { registerAllTools } from './tools/index.js';
 
+// Logger — outputs to stderr (stdout is reserved for MCP protocol)
+import { logger } from './logger.js';
+
 // ============================================================================
 // CREATE THE MCP SERVER
 // ============================================================================
@@ -67,12 +70,11 @@ async function main() {
     await server.connect(transport);
 
     // Log to stderr (not stdout, which is used for MCP messages)
-    console.error('FirstPromoter MCP Server running on stdio');
+    logger.info('FirstPromoter MCP Server running on stdio');
   } else {
-    console.error('Usage: tsx src/index.ts [--stdio]');
-    console.error('');
-    console.error('For Phase 1, only stdio transport is supported.');
-    console.error('HTTP transport will be added in Phase 2.');
+    logger.error('Usage: tsx src/index.ts [--stdio]');
+    logger.error('For Phase 1, only stdio transport is supported.');
+    logger.error('HTTP transport will be added in Phase 2.');
     process.exit(1);
   }
 }
@@ -80,6 +82,6 @@ async function main() {
 // Run the main function
 // .catch() handles any errors that occur during startup
 main().catch((error) => {
-  console.error('Failed to start server:', error);
+  logger.error('Failed to start server', { error: String(error) });
   process.exit(1);
 });

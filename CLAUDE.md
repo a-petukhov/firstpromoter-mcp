@@ -15,7 +15,7 @@ This is an MCP (Model Context Protocol) server that connects AI assistants (Clau
 |-------|--------|-------------|
 | Phase 1 | ✅ Complete | Local stdio server with all promoter tools (12 tools) |
 | Phase 2 | ✅ Complete | All remaining API tools — referrals (5), commissions (7), payouts (4), reports (5), promo codes (5), promoter campaigns (2), batch processes (3) |
-| Phase 3 | 🔲 Planned | Production polish (error handling, logging, rate limiting) |
+| Phase 3 | ✅ Complete | Production polish (error handling, logging, rate limiting) |
 
 ## Tech Stack
 
@@ -30,7 +30,8 @@ This is an MCP (Model Context Protocol) server that connects AI assistants (Clau
 firstpromoter-mcp/
 ├── src/
 │   ├── index.ts          # Entry point: server creation + stdio transport
-│   ├── api.ts            # FirstPromoter API helper (auth, fetch, error handling)
+│   ├── api.ts            # FirstPromoter API helper (auth, fetch, error handling, rate limiting, retry)
+│   ├── logger.ts         # Lightweight stderr logger (debug/info/warn/error, LOG_LEVEL env var)
 │   ├── formatters.ts     # Response formatters (structured text + raw JSON)
 │   └── tools/
 │       ├── index.ts              # Tool registry — registers all tools with the server
@@ -310,6 +311,24 @@ All 31 tools implemented across 7 new tool files:
 5. ✅ Promo Codes (5 tools) — list, get, create, update, archive
 6. ✅ Promoter Campaigns (2 tools) — list, update
 7. ✅ Batch Processes (3 tools) — list, get, progress
+
+## Phase 3 (Complete) — Production Polish
+
+Centralized improvements in `src/api.ts` and new `src/logger.ts` — zero changes to tool files:
+
+1. **Logger** (`src/logger.ts`) — stderr-only logger with 4 levels (debug/info/warn/error), configurable via `LOG_LEVEL` env var
+2. **Error parsing** — `FirstPromoterAPIError` class with status-code-specific messages (401, 403, 404, 422, 429, 5xx), JSON body parsing for detail extraction
+3. **Rate limiter** — sliding-window (60s) with 380-request safe buffer below the 400/min API limit, auto-pauses when near limit
+4. **Retry logic** — up to 3 retries with exponential backoff (1s/2s/4s) on 429 and 5xx errors, respects `Retry-After` header
+5. **Request logging** — method + endpoint on request, status + duration on response (debug level), errors at error level
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FP_BEARER_TOKEN` | — | FirstPromoter API token (required) |
+| `FP_ACCOUNT_ID` | — | FirstPromoter account ID (required) |
+| `LOG_LEVEL` | `info` | Log verbosity: `debug`, `info`, `warn`, `error` |
 
 ## Future: Remote Server (Separate Repo)
 
